@@ -14,3 +14,11 @@ load("@rules_rust//rust:repositories.bzl", "rules_rust_dependencies", "rust_regi
 rules_rust_dependencies()
 
 rust_register_toolchains()
+
+load("@rules_rust//wasm_bindgen:repositories.bzl", "rust_wasm_bindgen_repositories")
+
+rust_wasm_bindgen_repositories()
+
+load("@build_bazel_rules_nodejs//:index.bzl", "node_repositories")
+
+node_repositories()
