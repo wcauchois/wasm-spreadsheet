@@ -1,2 +1,9 @@
 *.swp
 node_modules
+
+# Bazel related
+# https://docs.bazel.build/versions/main/output_directories.html
+bazel-bin
+bazel-out
+bazel-testlogs
+bazel-wasm-ui
