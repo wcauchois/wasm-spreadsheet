@@ -3,12 +3,15 @@
 use nom::{
     branch::alt,
     bytes::complete::{escaped, tag},
-    character::complete::{alpha1, char, digit1, multispace0, multispace1, none_of, one_of},
-    combinator::{cut, map, map_res, opt},
+    character::complete::{
+        alpha1, alphanumeric1, anychar, char, digit1, multispace0, multispace1, none_of, one_of,
+    },
+    character::is_alphanumeric,
+    combinator::{all_consuming, cut, map, map_res, opt, recognize, verify},
     error::{context, VerboseError},
-    multi::many0,
+    multi::{many0, many0_count, many1_count},
     number::complete::float,
-    sequence::{delimited, preceded, terminated, tuple},
+    sequence::{delimited, pair, preceded, terminated, tuple},
     IResult, Parser,
 };
 
@@ -21,7 +24,8 @@ pub enum Expr {
     List(Vec<Expr>),
 }
 
-type ExprParseResult<'a> = IResult<&'a str, Expr, VerboseError<&'a str>>;
+type ParseResult<'a, T> = IResult<&'a str, T, VerboseError<&'a str>>;
+type ExprParseResult<'a> = ParseResult<'a, Expr>;
 
 fn parse_number<'a>(input: &'a str) -> ExprParseResult<'a> {
     map(float, |n| Expr::Number(n))(input)
@@ -37,11 +41,46 @@ fn parse_string<'a>(input: &'a str) -> ExprParseResult<'a> {
     Ok((input, Expr::String(interpreted_s)))
 }
 
+fn parse_ident<'a>(input: &'a str) -> ParseResult<'a, &'a str> {
+    fn is_valid_ident_char(c: char) -> bool {
+        match c {
+            c if is_alphanumeric(c as u8) => true,
+            '+' => true,
+            '-' => true,
+            '/' => true,
+            '_' => true,
+            '*' => true,
+            '>' => true,
+            '<' => true,
+            '|' => true,
+            '&' => true,
+            '.' => true,
+            _ => false,
+        }
+    }
+
+    recognize(many1_count(verify(anychar, |&c| is_valid_ident_char(c))))(input)
+}
+
+fn parse_symbol<'a>(input: &'a str) -> ExprParseResult<'a> {
+    map(parse_ident, |i| Expr::Symbol(i.into()))(input)
+}
+
+fn parse_keyword<'a>(input: &'a str) -> ExprParseResult<'a> {
+    map(preceded(tag(":"), parse_ident), |i| Expr::Keyword(i.into()))(input)
+}
+
 fn parse_expr<'a>(input: &'a str) -> ExprParseResult {
     preceded(
         multispace0,
-        // alt((parse_number, parse_string, parse_symbol, parse_list)),
-        alt((parse_number, parse_string)),
+        alt((
+            parse_number,
+            parse_string,
+            // Order matters: number+string must go above symbol parsing, since
+            // symbols can contain numbers or pretty much anything they want.
+            parse_symbol,
+            parse_keyword,
+        )),
     )(input)
 }
 
@@ -84,5 +123,25 @@ mod tests {
             parse(r#""hello\"world""#),
             Ok(Expr::String("hello\"world".into()))
         );
+    }
+
+    #[test]
+    fn test_parse_ident() {
+        assert_eq!(parse_ident("foo").map(|(_, i)| i), Ok("foo"));
+        assert_eq!(parse_ident("foo_bar").map(|(_, i)| i), Ok("foo_bar"));
+        assert_eq!(parse_ident("foo_123").map(|(_, i)| i), Ok("foo_123"));
+        assert_eq!(parse_ident("foo_123").map(|(_, i)| i), Ok("foo_123"));
+        assert_eq!(parse_ident("123").map(|(_, i)| i), Ok("123"));
+        assert_eq!(parse_ident("+-").map(|(_, i)| i), Ok("+-"));
+    }
+
+    #[test]
+    fn test_parse_symbol() {
+        assert_eq!(parse("foobar"), Ok(Expr::Symbol("foobar".into())));
+    }
+
+    #[test]
+    fn test_parse_keyword() {
+        assert_eq!(parse(":foo"), Ok(Expr::Keyword("foo".into())));
     }
 }

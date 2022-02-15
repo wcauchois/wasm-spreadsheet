@@ -35,6 +35,14 @@ impl Sheet {
             .insert(SheetAddress { row, col }, SheetCell { value });
     }
 
+    pub fn debug_parse_expr(&mut self, input: &str) -> String {
+        (match parser::parse(input) {
+            Ok(expr) => format!("{:#?}", expr),
+            Err(msg) => format!("ERROR: {}", msg),
+        })
+        .into()
+    }
+
     pub fn new() -> Self {
         console_error_panic_hook::set_once();
 

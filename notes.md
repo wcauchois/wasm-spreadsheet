@@ -7,3 +7,5 @@ bytecode interpreter: https://bernsteinbear.com/blog/bytecode-interpreters/
 testing with github actions:
 bazelisk is already installed in GH VMs, but i might
 want to cache the .cache/bazel directory: https://github.com/marketplace/actions/setup-bazelisk
+
+parsing identifiers: https://stackoverflow.com/a/61329008
