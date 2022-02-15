@@ -2,7 +2,7 @@ import React from "react";
 import ReactDOM from "react-dom";
 
 // import * as foo from "../../bazel-bin/src/engine/engine_lib_wasm_bindgen";
-import foo, { double } from "engine_lib_wasm_bindgen";
+import init, { double } from "engine_lib_wasm_bindgen";
 
 function App() {
   return (
@@ -21,7 +21,7 @@ ReactDOM.render(
 
 async function runFoo() {
   console.log('run foo?');
-  await foo("../engine/engine_lib_wasm_bindgen_bg.wasm");
+  await init("../engine/engine_lib_wasm_bindgen_bg.wasm");
   console.log('done?');
 
   console.log('double is', double(2));
