@@ -3,16 +3,14 @@
 use nom::{
     branch::alt,
     bytes::complete::{escaped, tag},
-    character::complete::{
-        alpha1, alphanumeric1, anychar, char, digit1, multispace0, multispace1, none_of, one_of,
-    },
+    character::complete::{anychar, char, multispace0, multispace1, none_of, one_of},
     character::is_alphanumeric,
-    combinator::{all_consuming, cut, map, map_res, opt, recognize, verify},
+    combinator::{cut, map, recognize, verify},
     error::{context, VerboseError},
-    multi::{many0, many0_count, many1, many1_count, separated_list0},
+    multi::{many1_count, separated_list0},
     number::complete::float,
-    sequence::{delimited, pair, preceded, terminated, tuple},
-    IResult, Parser,
+    sequence::{delimited, preceded},
+    IResult,
 };
 
 #[derive(Debug, PartialEq, Clone)]
