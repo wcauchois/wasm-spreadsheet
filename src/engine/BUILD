@@ -7,7 +7,7 @@ package(default_visibility = ["//visibility:public"])
 
 rust_shared_library(
     name = "engine_lib_wasm",
-    srcs = ["main.rs"],
+    srcs = glob(["**/*.rs"]),
     deps = [
         "//cargo:console_error_panic_hook",
         "@rules_rust//wasm_bindgen/raze:wasm_bindgen",

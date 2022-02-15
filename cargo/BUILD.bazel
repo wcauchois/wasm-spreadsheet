@@ -21,6 +21,15 @@ alias(
     ],
 )
 
+alias(
+    name = "nom",
+    actual = "@raze__nom__7_1_0//:nom",
+    tags = [
+        "cargo-raze",
+        "manual",
+    ],
+)
+
 # Export file for Stardoc support
 exports_files(
     [

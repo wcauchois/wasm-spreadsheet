@@ -63,6 +63,33 @@ def raze_fetch_remote_crates():
 
     maybe(
         http_archive,
+        name = "raze__memchr__2_4_1",
+        url = "https://crates.io/api/v1/crates/memchr/2.4.1/download",
+        type = "tar.gz",
+        strip_prefix = "memchr-2.4.1",
+        build_file = Label("//cargo/remote:BUILD.memchr-2.4.1.bazel"),
+    )
+
+    maybe(
+        http_archive,
+        name = "raze__minimal_lexical__0_2_1",
+        url = "https://crates.io/api/v1/crates/minimal-lexical/0.2.1/download",
+        type = "tar.gz",
+        strip_prefix = "minimal-lexical-0.2.1",
+        build_file = Label("//cargo/remote:BUILD.minimal-lexical-0.2.1.bazel"),
+    )
+
+    maybe(
+        http_archive,
+        name = "raze__nom__7_1_0",
+        url = "https://crates.io/api/v1/crates/nom/7.1.0/download",
+        type = "tar.gz",
+        strip_prefix = "nom-7.1.0",
+        build_file = Label("//cargo/remote:BUILD.nom-7.1.0.bazel"),
+    )
+
+    maybe(
+        http_archive,
         name = "raze__proc_macro2__1_0_36",
         url = "https://crates.io/api/v1/crates/proc-macro2/1.0.36/download",
         type = "tar.gz",
@@ -99,6 +126,15 @@ def raze_fetch_remote_crates():
         sha256 = "8ccb82d61f80a663efe1f787a51b16b5a51e3314d6ac365b08639f52387b33f3",
         strip_prefix = "unicode-xid-0.2.2",
         build_file = Label("//cargo/remote:BUILD.unicode-xid-0.2.2.bazel"),
+    )
+
+    maybe(
+        http_archive,
+        name = "raze__version_check__0_9_4",
+        url = "https://crates.io/api/v1/crates/version_check/0.9.4/download",
+        type = "tar.gz",
+        strip_prefix = "version_check-0.9.4",
+        build_file = Label("//cargo/remote:BUILD.version_check-0.9.4.bazel"),
     )
 
     maybe(

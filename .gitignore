@@ -7,3 +7,6 @@ bazel-bin
 bazel-out
 bazel-testlogs
 bazel-wasm-spreadsheet
+
+# Cargo/rust
+target
