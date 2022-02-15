@@ -1,4 +1,5 @@
 extern crate console_error_panic_hook;
+extern crate nom;
 
 use std::collections::HashMap;
 use wasm_bindgen::prelude::*;

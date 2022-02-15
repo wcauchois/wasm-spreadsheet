@@ -10,6 +10,7 @@ rust_shared_library(
     srcs = glob(["**/*.rs"]),
     deps = [
         "//cargo:console_error_panic_hook",
+        "//cargo:nom",
         "@rules_rust//wasm_bindgen/raze:wasm_bindgen",
     ],
 )
