@@ -1,5 +1,5 @@
 load("@rules_rust//wasm_bindgen:wasm_bindgen.bzl", "rust_wasm_bindgen")
-load("@rules_rust//rust:defs.bzl", "rust_shared_library")
+load("@rules_rust//rust:defs.bzl", "rust_shared_library", "rust_test")
 
 package(default_visibility = ["//visibility:public"])
 
@@ -12,6 +12,11 @@ rust_shared_library(
         "//cargo:console_error_panic_hook",
         "@rules_rust//wasm_bindgen/raze:wasm_bindgen",
     ],
+)
+
+rust_test(
+    name = "engine_lib_wasm_test",
+    crate = ":engine_lib_wasm",
 )
 
 rust_wasm_bindgen(

@@ -11,3 +11,11 @@ pub enum Expr {
 pub fn parse(s: &str) -> Expr {
     Expr::Number(42.0)
 }
+
+#[cfg(test)]
+mod tests {
+    #[test]
+    fn it_works() {
+        assert_eq!(2 + 2, 4);
+    }
+}
