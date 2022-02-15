@@ -22,6 +22,29 @@ pub enum Expr {
     List(Vec<Expr>),
 }
 
+pub trait ExprVisitor {
+    fn visit_number(&mut self, _num: f32) {}
+    fn visit_string(&mut self, _s: &String) {}
+    fn visit_symbol(&mut self, _sym: &String) {}
+    fn visit_keyword(&mut self, _kw: &String) {}
+}
+
+impl Expr {
+    fn walk(&self, visitor: &mut dyn ExprVisitor) {
+        match self {
+            Expr::Number(num) => visitor.visit_number(*num),
+            Expr::String(s) => visitor.visit_string(&s),
+            Expr::Symbol(sym) => visitor.visit_symbol(&sym),
+            Expr::Keyword(kw) => visitor.visit_keyword(&kw),
+            Expr::List(exprs) => {
+                for expr in exprs {
+                    expr.walk(visitor);
+                }
+            }
+        }
+    }
+}
+
 type ParseResult<'a, T> = IResult<&'a str, T, VerboseError<&'a str>>;
 type ExprParseResult<'a> = ParseResult<'a, Expr>;
 
@@ -170,5 +193,62 @@ mod tests {
                 ])
             ]))
         );
+    }
+
+    struct TestExprVisitor {
+        visited_numbers: Vec<f32>,
+        visited_strings: Vec<String>,
+        visited_symbols: Vec<String>,
+        visited_keywords: Vec<String>,
+    }
+
+    impl TestExprVisitor {
+        fn new() -> Self {
+            Self {
+                visited_numbers: vec![],
+                visited_strings: vec![],
+                visited_symbols: vec![],
+                visited_keywords: vec![],
+            }
+        }
+    }
+
+    impl ExprVisitor for TestExprVisitor {
+        fn visit_number(&mut self, num: f32) {
+            self.visited_numbers.push(num);
+        }
+
+        fn visit_string(&mut self, s: &String) {
+            self.visited_strings.push(s.clone());
+        }
+
+        fn visit_symbol(&mut self, sym: &String) {
+            self.visited_symbols.push(sym.clone());
+        }
+
+        fn visit_keyword(&mut self, kw: &String) {
+            self.visited_keywords.push(kw.clone());
+        }
+    }
+
+    #[test]
+    fn test_expr_walk() {
+        let expr = Expr::List(vec![
+            Expr::List(vec![Expr::Number(42.0), Expr::String("hello".into())]),
+            Expr::List(vec![
+                Expr::String("world".into()),
+                Expr::Symbol("baz".into()),
+            ]),
+            Expr::String("blah".into()),
+        ]);
+
+        let mut visitor = TestExprVisitor::new();
+        expr.walk(&mut visitor);
+        assert_eq!(visitor.visited_numbers, vec![42.0]);
+        assert_eq!(
+            visitor.visited_strings,
+            vec!["hello".to_string(), "world".to_string(), "blah".to_string()]
+        );
+        assert_eq!(visitor.visited_symbols, vec!["baz".to_string()]);
     }
 }
