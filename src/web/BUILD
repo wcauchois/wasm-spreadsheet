@@ -5,7 +5,10 @@ load("@build_bazel_rules_nodejs//:index.bzl", "js_library")
 
 ts_project(
     name = "lib",
-    srcs = glob(["**/*.tsx"]),
+    srcs = glob([
+        "**/*.tsx",
+        "**/*.ts",
+    ]),
     deps = [
         "//src/engine:engine_lib_wasm_bindgen",
         "@npm//@types/react",
@@ -33,7 +36,7 @@ esbuild_config(
 esbuild(
     name = "bundle",
     config = ":esbuild_config",
-    entry_point = "main.tsx",
+    entry_point = "index.tsx",
     deps = [":lib"],
 )
 

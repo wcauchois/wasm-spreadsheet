@@ -1,18 +1,5 @@
 load("@bazel_tools//tools/build_defs/repo:http.bzl", "http_archive")
 
-# http_archive(
-#     name = "bazel_skylib",
-#     sha256 = "af87959afe497dc8dfd4c6cb66e1279cb98ccc84284619ebfec27d9c09a903de",
-#     urls = [
-#         "https://mirror.bazel.build/github.com/bazelbuild/bazel-skylib/releases/download/1.2.0/bazel-skylib-1.2.0.tar.gz",
-#         "https://github.com/bazelbuild/bazel-skylib/releases/download/1.2.0/bazel-skylib-1.2.0.tar.gz",
-#     ],
-# )
-
-# load("@bazel_skylib//:workspace.bzl", "bazel_skylib_workspace")
-
-# bazel_skylib_workspace()
-
 http_archive(
     name = "build_bazel_rules_nodejs",
     sha256 = "c077680a307eb88f3e62b0b662c2e9c6315319385bc8c637a861ffdbed8ca247",
@@ -55,3 +42,7 @@ yarn_install(
 load("@build_bazel_rules_nodejs//toolchains/esbuild:esbuild_repositories.bzl", "esbuild_repositories")
 
 esbuild_repositories(npm_repository = "npm")
+
+load("//cargo:crates.bzl", "raze_fetch_remote_crates")
+
+raze_fetch_remote_crates()

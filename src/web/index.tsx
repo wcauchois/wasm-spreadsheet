@@ -1,15 +1,7 @@
 import React, { useEffect, useState } from "react";
 import ReactDOM from "react-dom";
-
-import init, { double } from "engine_lib_wasm_bindgen";
-
-function Main() {
-  return (
-    <div>
-      Hello world, the double is {double(2)}
-    </div>
-  )
-}
+import init from "engine_lib_wasm_bindgen";
+import Main from "./components/Main";
 
 function App() {
   const [initialized, setInitialized] = useState(false);

@@ -1,5 +1,8 @@
 const path = require('path');
 
+// Inspiration for an ESBuild plugin to load wasm-bindgen output:
+// https://github.com/evanw/esbuild/issues/408#issuecomment-757555771
+
 module.exports = {
   name: 'bindgen',
   setup(build) {

@@ -30,8 +30,6 @@
     "paths": {
       "engine_lib_wasm_bindgen": [
         "../../bazel-out/darwin-fastbuild/bin/src/engine/engine_lib_wasm_bindgen"
-        // "./engine_lib_wasm_bindgen",
-        // "../../bazel-bin/src/engine/engine_lib_wasm_bindgen"
       ]
     },
     // "rootDirs": [],                                   /* Allow multiple folders to be treated as one when resolving modules. */
