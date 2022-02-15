@@ -1,0 +1,1 @@
+https://github.com/bazelbuild/rules_nodejs/blob/stable/examples/react_webpack/BUILD.bazel
