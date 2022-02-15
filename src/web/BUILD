@@ -1,19 +1,25 @@
-# load("@npm//@bazel/esbuild:index.bzl", "esbuild")
+load("@npm//@bazel/esbuild:index.bzl", "esbuild")
 load("@npm//@bazel/typescript:index.bzl", "ts_project")
 load("@npm//http-server:index.bzl", "http_server")
 
 ts_project(
-    name = "web",
+    name = "lib",
     srcs = ["main.tsx"],
+)
+
+esbuild(
+    name = "bundle",
+    entry_point = "main.tsx",
+    deps = [":lib"],
 )
 
 http_server(
     name = "server",
     data = [
-        "app.bundle.js",
         "index.html",
+        ":bundle",
     ],
-    templated_args = ["."],
+    templated_args = ["./src/web"],
 )
 
 # https://github.com/bazelbuild/rules_nodejs/blob/stable/examples/react_webpack/BUILD.bazel

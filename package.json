@@ -3,6 +3,9 @@
   "version": "1.0.0",
   "main": "index.js",
   "license": "MIT",
+  "scripts": {
+    "serve": "ibazel run //src/web:server"
+  },
   "devDependencies": {
     "@bazel/esbuild": "^5.1.0",
     "@bazel/typescript": "^5.1.0",
