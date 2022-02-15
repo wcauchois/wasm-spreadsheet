@@ -5,8 +5,7 @@ load("@build_bazel_rules_nodejs//:index.bzl", "js_library")
 
 ts_project(
     name = "lib",
-    srcs = ["main.tsx"],
-    # glob(["**/*.ts"])
+    srcs = glob(["**/*.tsx"]),
     deps = [
         "//src/engine:engine_lib_wasm_bindgen",
         "@npm//@types/react",
@@ -17,9 +16,9 @@ ts_project(
 )
 
 js_library(
-    name = "txt_array_plugin",
+    name = "bindgen_esbuild_plugin",
     srcs = [
-        "txt-array-plugin.js",
+        "bindgen-plugin.js",
     ],
 )
 
@@ -27,7 +26,7 @@ esbuild_config(
     name = "esbuild_config",
     config_file = "esbuild.config.mjs",
     deps = [
-        ":txt_array_plugin",
+        ":bindgen_esbuild_plugin",
     ],
 )
 
@@ -47,9 +46,3 @@ http_server(
     ],
     templated_args = ["."],
 )
-
-# yarn_install(
-#     name = "yarn",
-#     package_json = ":package.json",
-#     yarn_lock = ":yarn.lock",
-# )

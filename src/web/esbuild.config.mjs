@@ -1,7 +1,7 @@
-import { default as txtArrayPlugin } from './txt-array-plugin.js';
+import { default as bindgenPlugin } from './bindgen-plugin.js';
 
 export default {
   plugins: [
-    txtArrayPlugin,
+    bindgenPlugin,
   ],
-}
+};
