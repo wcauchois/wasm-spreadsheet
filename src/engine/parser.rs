@@ -9,7 +9,7 @@ use nom::{
     character::is_alphanumeric,
     combinator::{all_consuming, cut, map, map_res, opt, recognize, verify},
     error::{context, VerboseError},
-    multi::{many0, many0_count, many1_count},
+    multi::{many0, many0_count, many1, many1_count, separated_list0},
     number::complete::float,
     sequence::{delimited, pair, preceded, terminated, tuple},
     IResult, Parser,
@@ -55,6 +55,7 @@ fn parse_ident<'a>(input: &'a str) -> ParseResult<'a, &'a str> {
             '|' => true,
             '&' => true,
             '.' => true,
+            '=' => true,
             _ => false,
         }
     }
@@ -71,6 +72,15 @@ fn parse_keyword<'a>(input: &'a str) -> ExprParseResult<'a> {
 }
 
 fn parse_expr<'a>(input: &'a str) -> ExprParseResult {
+    let parse_list = map(
+        delimited(
+            char('('),
+            separated_list0(multispace1, parse_expr),
+            context("closing paren", cut(preceded(multispace0, char(')')))),
+        ),
+        |exprs| Expr::List(exprs),
+    );
+
     preceded(
         multispace0,
         alt((
@@ -80,6 +90,7 @@ fn parse_expr<'a>(input: &'a str) -> ExprParseResult {
             // symbols can contain numbers or pretty much anything they want.
             parse_symbol,
             parse_keyword,
+            parse_list,
         )),
     )(input)
 }
@@ -143,5 +154,23 @@ mod tests {
     #[test]
     fn test_parse_keyword() {
         assert_eq!(parse(":foo"), Ok(Expr::Keyword("foo".into())));
+    }
+
+    #[test]
+    fn test_parse_list() {
+        assert_eq!(
+            parse("(1 2)"),
+            Ok(Expr::List(vec![Expr::Number(1.0), Expr::Number(2.0)]))
+        );
+        assert_eq!(
+            parse("(hey (you :guy))"),
+            Ok(Expr::List(vec![
+                Expr::Symbol("hey".into()),
+                Expr::List(vec![
+                    Expr::Symbol("you".into()),
+                    Expr::Keyword("guy".into()),
+                ])
+            ]))
+        );
     }
 }
