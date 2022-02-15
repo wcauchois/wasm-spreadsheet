@@ -1,3 +1,5 @@
+extern crate console_error_panic_hook;
+
 use std::collections::HashMap;
 use wasm_bindgen::prelude::*;
 
@@ -32,6 +34,8 @@ impl Sheet {
     }
 
     pub fn new() -> Self {
+        console_error_panic_hook::set_once();
+
         Self {
             cells: HashMap::new(),
         }

@@ -25,6 +25,10 @@ rules_rust_dependencies()
 
 rust_register_toolchains()
 
+load("//cargo:crates.bzl", "raze_fetch_remote_crates")
+
+raze_fetch_remote_crates()
+
 load("@rules_rust//wasm_bindgen:repositories.bzl", "rust_wasm_bindgen_repositories")
 
 rust_wasm_bindgen_repositories()
@@ -42,7 +46,3 @@ yarn_install(
 load("@build_bazel_rules_nodejs//toolchains/esbuild:esbuild_repositories.bzl", "esbuild_repositories")
 
 esbuild_repositories(npm_repository = "npm")
-
-load("//cargo:crates.bzl", "raze_fetch_remote_crates")
-
-raze_fetch_remote_crates()

@@ -51,7 +51,7 @@ rust_library(
     # buildifier: leave-alone
     deps = [
         "@raze__cfg_if__1_0_0//:cfg_if",
-        "@raze__wasm_bindgen__0_2_79//:wasm_bindgen",
+        "@rules_rust_wasm_bindgen__wasm_bindgen__0_2_78//:wasm_bindgen",
     ],
 )
 

@@ -19,7 +19,7 @@ workspace_path = "//cargo"
 
 # This causes aliases for dependencies to be rendered in the BUILD
 # file located next to this `Cargo.toml` file.
-package_aliases_dir = "."
+package_aliases_dir = "cargo"
 
 # The set of targets to generate BUILD rules for.
 targets = [
@@ -31,3 +31,14 @@ targets = [
 # is used to indicate whether the user is using a non-vendored or
 # vendored set of dependencies.
 genmode = "Remote"
+
+[package.metadata.raze.crates.console_error_panic_hook.'*']
+skipped_deps = [
+    "wasm-bindgen-0.2.79"
+]
+additional_deps = [
+    "@rules_rust_wasm_bindgen__wasm_bindgen__0_2_78//:wasm_bindgen",
+]
+
+[package.metadata.raze.crates.bumpalo.'3.9.1']
+data_attr = "[\"README.md\"]"
