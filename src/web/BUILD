@@ -5,6 +5,12 @@ load("@npm//http-server:index.bzl", "http_server")
 ts_project(
     name = "lib",
     srcs = ["main.tsx"],
+    deps = [
+        "@npm//@types/react",
+        "@npm//@types/react-dom",
+        "@npm//react",
+        "@npm//react-dom",
+    ],
 )
 
 esbuild(
