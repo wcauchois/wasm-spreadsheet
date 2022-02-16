@@ -13,7 +13,7 @@ use nom::{
     IResult,
 };
 
-use crate::error::AppError;
+use crate::error::{AppError, AppResult};
 
 #[derive(Debug, PartialEq, Clone)]
 pub enum Expr {
@@ -22,6 +22,12 @@ pub enum Expr {
     Symbol(String),
     Keyword(String),
     List(Vec<Expr>),
+}
+
+impl Expr {
+    pub fn from_string<S: ToString>(s: S) -> AppResult<Expr> {
+        parse(&s.to_string())
+    }
 }
 
 pub trait ExprVisitor {
@@ -118,7 +124,7 @@ fn parse_expr<'a>(input: &'a str) -> ExprParseResult {
     )(input)
 }
 
-pub fn parse(src: &str) -> Result<Expr, AppError> {
+pub fn parse(src: &str) -> AppResult<Expr> {
     parse_expr(src)
         .map_err(|e: nom::Err<VerboseError<&str>>| AppError::new(format!("{:#?}", e)))
         .map(|(_, exp)| exp)
