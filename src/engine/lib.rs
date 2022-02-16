@@ -1,6 +1,7 @@
 extern crate console_error_panic_hook;
 extern crate nom;
 
+use std::cell::RefCell;
 use std::collections::HashMap;
 use wasm_bindgen::prelude::*;
 
@@ -11,6 +12,17 @@ mod parser;
 struct SheetAddress {
     row: i32,
     col: i32,
+}
+
+struct SheetFormula {
+    expr: parser::Expr,
+    references: Vec<SheetAddress>,
+}
+
+enum SheetCellValue {
+    LiteralNumber(f32),
+    LiteralText(String),
+    Formula(SheetFormula),
 }
 
 struct SheetCell {

@@ -30,7 +30,7 @@ pub trait ExprVisitor {
 }
 
 impl Expr {
-    fn walk(&self, visitor: &mut dyn ExprVisitor) {
+    pub fn walk(&self, visitor: &mut dyn ExprVisitor) {
         match self {
             Expr::Number(num) => visitor.visit_number(*num),
             Expr::String(s) => visitor.visit_string(&s),
