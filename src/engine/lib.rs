@@ -60,6 +60,17 @@ impl Sheet {
         .into()
     }
 
+    pub fn debug_eval_expr(&mut self, input: &str) -> Result<String, JsValue> {
+        || -> error::AppResult<String> {
+            let expr = parser::parse(input)?;
+            let program = interpreter::compile(&expr)?;
+            let mut env = interpreter::Env::with_builtins();
+            let res = interpreter::eval(&program, &mut env)?;
+            Ok(format!("{:?}", res))
+        }()
+        .map_err(|err| JsValue::from_str(format!("{}", err).as_str()))
+    }
+
     pub fn new() -> Self {
         console_error_panic_hook::set_once();
 

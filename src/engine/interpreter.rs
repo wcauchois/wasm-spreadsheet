@@ -56,7 +56,7 @@ impl Env {
         }
     }
 
-    fn with_builtins() -> Self {
+    pub fn with_builtins() -> Self {
         BUILTINS_ENVIRONMENT.with(|builtins_environment| Self {
             table: HashMap::new(),
             parent: Some(builtins_environment.clone()),
@@ -221,7 +221,7 @@ pub fn compile(expr: &Expr) -> AppResult<Program> {
     })
 }
 
-pub fn evaluate(program: &Program, env: &mut Env) -> AppResult<Value> {
+pub fn eval(program: &Program, env: &mut Env) -> AppResult<Value> {
     let mut pc: usize = 0;
     let mut stack: Vec<Value> = Vec::new();
     let instructions = &program.instructions;
@@ -310,7 +310,7 @@ mod tests {
     fn test_full_eval() {
         let mut env = Env::with_builtins();
         let program = compile(&Expr::from_string("(+ 1 2)").unwrap()).unwrap();
-        let res = evaluate(&program, &mut env).unwrap();
+        let res = eval(&program, &mut env).unwrap();
         assert_eq!(res, Value::Number(3.0));
     }
 }
