@@ -2,6 +2,8 @@ use crate::parser::Expr;
 use std::collections::HashMap;
 use std::fmt;
 use std::rc::Rc;
+use std::sync::Arc;
+use std::thread_local;
 
 use crate::error::{AppError, AppResult};
 
@@ -30,15 +32,6 @@ pub struct Env {
     parent: Option<Rc<Env>>,
 }
 
-impl std::default::Default for Env {
-    fn default() -> Self {
-        Env {
-            table: HashMap::new(),
-            parent: None,
-        }
-    }
-}
-
 impl Env {
     /// Map a name to a value in the current env
     fn define(&mut self, name: &str, value: Value) {
@@ -48,6 +41,10 @@ impl Env {
     fn lookup<'a>(&'a self, name: &str) -> AppResult<&'a Value> {
         if let Some(env) = self.resolve(name) {
             Ok(env.table.get(name).unwrap())
+        // } else if let Some(builtin_value) =
+        //     BUILTIN_VALUES_BY_NAME.with(|builtin_values_by_name| &builtin_values_by_name.get(name))
+        // {
+        //     Ok(&builtin_value)
         } else {
             Err(AppError::new(format!("Variable is not defined: {}", name)))
         }
@@ -63,6 +60,13 @@ impl Env {
             None
         }
     }
+
+    fn with_builtins() -> Self {
+        BUILTINS_ENVIRONMENT.with(|builtins_environment| Self {
+            table: HashMap::new(),
+            parent: Some(builtins_environment.clone()),
+        })
+    }
 }
 
 #[derive(Debug, PartialEq)]
@@ -73,12 +77,13 @@ pub enum Value {
     Keyword(String),
     List(Vec<Value>),
     CompiledCode(Vec<Instruction>),
-    Function {
+    UserFunction {
         /// List of names
         params: Vec<String>,
         body: Vec<Instruction>,
         env: Env,
     },
+    BuiltinFunction(&'static dyn BuiltinFunction),
     Nil,
 }
 
@@ -97,6 +102,28 @@ impl Value {
 trait BuiltinFunction: Sync {
     fn name(&self) -> String;
     fn call(&self, args: Vec<Value>) -> AppResult<Value>;
+}
+
+// impl BuiltinFunction for &dyn BuiltinFunction {
+//     fn name(&self) -> String {
+//         self.name()
+//     }
+
+//     fn call(&self, args: Vec<Value>) -> AppResult<Value> {
+//         self.call(args)
+//     }
+// }
+
+impl fmt::Debug for dyn BuiltinFunction {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "<builtin {}>", self.name())
+    }
+}
+
+impl std::cmp::PartialEq for dyn BuiltinFunction {
+    fn eq(&self, other: &dyn BuiltinFunction) -> bool {
+        std::ptr::eq(self, other)
+    }
 }
 
 macro_rules! define_builtin_function {
@@ -128,13 +155,42 @@ define_builtin_function!(Plus, "+", args => {
 });
 
 lazy_static! {
-    static ref INTERPRETER_BUILTINS: Vec<&'static dyn BuiltinFunction> = vec![&Plus];
-    static ref INTERPRETER_BUILTINS_BY_NAME: HashMap<String, &'static dyn BuiltinFunction> =
-        INTERPRETER_BUILTINS
+    static ref BUILTIN_FUNCTIONS: Vec<&'static dyn BuiltinFunction> = vec![&Plus];
+    static ref BUILTIN_FUNCTIONS_BY_NAME: HashMap<String, &'static dyn BuiltinFunction> =
+        BUILTIN_FUNCTIONS
             .iter()
             .map(|builtin| (builtin.name(), builtin.clone()))
             .collect();
+    // static ref BUILTINS_ENVIRONMENT: Env = Env {
+    //     table: BUILTIN_FUNCTIONS_BY_NAME
+    //         .iter()
+    //         .map(|(name, func)| (name.clone(), Value::BuiltinFunction(func.clone())))
+    //         .collect(),
+    //     parent: None,
+    // };
 }
+
+thread_local! {
+    pub static BUILTINS_ENVIRONMENT: Rc<Env> = Rc::new(Env {
+        table: BUILTIN_FUNCTIONS_BY_NAME
+            .iter()
+            .map(|(name, func)| (name.clone(), Value::BuiltinFunction(func.clone())))
+            .collect(),
+        parent: None,
+    });
+}
+
+/*
+thread_local! {
+    pub static BUILTIN_VALUES_BY_NAME: HashMap<String, Value> = {
+        let builtin_functions: Vec<&'static dyn BuiltinFunction> = vec![&Plus];
+        builtin_functions
+            .iter()
+            .map(|builtin| (builtin.name(), Value::BuiltinFunction(builtin.clone())))
+            .collect()
+    }
+}
+*/
 
 pub struct Program {
     instructions: Vec<Instruction>,
@@ -247,7 +303,8 @@ mod tests {
     }
 
     #[test]
-    fn test_builtin_map() {
-        assert_eq!(INTERPRETER_BUILTINS_BY_NAME.get("+").unwrap().name(), "+");
+    fn test_env_with_builtins() {
+        let env = Env::with_builtins();
+        assert_eq!(env.lookup("+").unwrap(), &Value::BuiltinFunction(&Plus));
     }
 }
