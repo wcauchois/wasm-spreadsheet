@@ -41,10 +41,6 @@ impl Env {
     fn lookup<'a>(&'a self, name: &str) -> AppResult<&'a Value> {
         if let Some(env) = self.resolve(name) {
             Ok(env.table.get(name).unwrap())
-        // } else if let Some(builtin_value) =
-        //     BUILTIN_VALUES_BY_NAME.with(|builtin_values_by_name| &builtin_values_by_name.get(name))
-        // {
-        //     Ok(&builtin_value)
         } else {
             Err(AppError::new(format!("Variable is not defined: {}", name)))
         }
@@ -104,16 +100,6 @@ trait BuiltinFunction: Sync {
     fn call(&self, args: Vec<Value>) -> AppResult<Value>;
 }
 
-// impl BuiltinFunction for &dyn BuiltinFunction {
-//     fn name(&self) -> String {
-//         self.name()
-//     }
-
-//     fn call(&self, args: Vec<Value>) -> AppResult<Value> {
-//         self.call(args)
-//     }
-// }
-
 impl fmt::Debug for dyn BuiltinFunction {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "<builtin {}>", self.name())
@@ -161,13 +147,6 @@ lazy_static! {
             .iter()
             .map(|builtin| (builtin.name(), builtin.clone()))
             .collect();
-    // static ref BUILTINS_ENVIRONMENT: Env = Env {
-    //     table: BUILTIN_FUNCTIONS_BY_NAME
-    //         .iter()
-    //         .map(|(name, func)| (name.clone(), Value::BuiltinFunction(func.clone())))
-    //         .collect(),
-    //     parent: None,
-    // };
 }
 
 thread_local! {
@@ -179,18 +158,6 @@ thread_local! {
         parent: None,
     });
 }
-
-/*
-thread_local! {
-    pub static BUILTIN_VALUES_BY_NAME: HashMap<String, Value> = {
-        let builtin_functions: Vec<&'static dyn BuiltinFunction> = vec![&Plus];
-        builtin_functions
-            .iter()
-            .map(|builtin| (builtin.name(), Value::BuiltinFunction(builtin.clone())))
-            .collect()
-    }
-}
-*/
 
 pub struct Program {
     instructions: Vec<Instruction>,
