@@ -9,6 +9,7 @@ rust_shared_library(
     deps = [
         "//cargo:console_error_panic_hook",
         "//cargo:imbl",
+        "//cargo:lazy_static",
         "//cargo:nom",
         "@rules_rust//wasm_bindgen/raze:wasm_bindgen",
     ],

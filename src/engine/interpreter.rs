@@ -30,9 +30,38 @@ pub struct Env {
     parent: Option<Rc<Env>>,
 }
 
+impl std::default::Default for Env {
+    fn default() -> Self {
+        Env {
+            table: HashMap::new(),
+            parent: None,
+        }
+    }
+}
+
 impl Env {
+    /// Map a name to a value in the current env
     fn define(&mut self, name: &str, value: Value) {
         self.table.insert(name.to_owned(), value);
+    }
+
+    fn lookup<'a>(&'a self, name: &str) -> AppResult<&'a Value> {
+        if let Some(env) = self.resolve(name) {
+            Ok(env.table.get(name).unwrap())
+        } else {
+            Err(AppError::new(format!("Variable is not defined: {}", name)))
+        }
+    }
+
+    /// Find the env in which the name is bound
+    fn resolve<'a>(&'a self, name: &str) -> Option<&'a Env> {
+        if self.table.contains_key(name) {
+            Some(self)
+        } else if let Some(parent) = &self.parent {
+            parent.resolve(name)
+        } else {
+            None
+        }
     }
 }
 
@@ -65,15 +94,15 @@ impl Value {
     }
 }
 
-trait Builtin {
+trait BuiltinFunction: Sync {
     fn name(&self) -> String;
     fn call(&self, args: Vec<Value>) -> AppResult<Value>;
 }
 
-macro_rules! define_builtin {
+macro_rules! define_builtin_function {
     ($struct_name:ident, $string_name:expr, $args:ident => $body:expr) => {
         struct $struct_name;
-        impl Builtin for $struct_name {
+        impl BuiltinFunction for $struct_name {
             fn name(&self) -> String {
                 String::from($string_name)
             }
@@ -85,7 +114,7 @@ macro_rules! define_builtin {
     };
 }
 
-define_builtin!(Plus, "+", args => {
+define_builtin_function!(Plus, "+", args => {
     let mut accum: f32 = 0.0;
     for arg in args {
         match arg {
@@ -97,6 +126,15 @@ define_builtin!(Plus, "+", args => {
     }
     Ok(Value::Number(accum))
 });
+
+lazy_static! {
+    static ref INTERPRETER_BUILTINS: Vec<&'static dyn BuiltinFunction> = vec![&Plus];
+    static ref INTERPRETER_BUILTINS_BY_NAME: HashMap<String, &'static dyn BuiltinFunction> =
+        INTERPRETER_BUILTINS
+            .iter()
+            .map(|builtin| (builtin.name(), builtin.clone()))
+            .collect();
+}
 
 pub struct Program {
     instructions: Vec<Instruction>,
@@ -155,8 +193,23 @@ fn compile_to_instructions(expr: &Expr, instructions: &mut Vec<Instruction>) -> 
     Ok(())
 }
 
-pub fn evaluate(program: Program) -> AppResult<Value> {
-    panic!();
+pub fn compile(expr: &Expr) -> AppResult<Program> {
+    Ok(Program {
+        instructions: compile_to_instruction_vec(&expr)?,
+    })
+}
+
+pub fn evaluate(program: &Program, env: &mut Env) -> AppResult<Value> {
+    let mut pc: usize = 0;
+    let instructions = &program.instructions;
+    while pc < instructions.len() {
+        let instruction = &instructions[pc];
+        pc += 1;
+        match instruction {
+            _ => panic!(),
+        }
+    }
+    Ok(Value::Nil)
 }
 
 #[cfg(test)]
@@ -191,5 +244,10 @@ mod tests {
             Value::Number(7.0)
         );
         assert_eq!(Plus.name(), "+");
+    }
+
+    #[test]
+    fn test_builtin_map() {
+        assert_eq!(INTERPRETER_BUILTINS_BY_NAME.get("+").unwrap().name(), "+");
     }
 }
