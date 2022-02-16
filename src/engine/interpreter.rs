@@ -65,6 +65,39 @@ impl Value {
     }
 }
 
+trait Builtin {
+    fn name(&self) -> String;
+    fn call(&self, args: Vec<Value>) -> AppResult<Value>;
+}
+
+macro_rules! define_builtin {
+    ($struct_name:ident, $string_name:expr, $args:ident => $body:expr) => {
+        struct $struct_name;
+        impl Builtin for $struct_name {
+            fn name(&self) -> String {
+                String::from($string_name)
+            }
+
+            fn call(&self, $args: Vec<Value>) -> AppResult<Value> {
+                $body
+            }
+        }
+    };
+}
+
+define_builtin!(Plus, "+", args => {
+    let mut accum: f32 = 0.0;
+    for arg in args {
+        match arg {
+            Value::Number(n) => {
+                accum += n;
+            }
+            _ => return Err(AppError::new("Bad arguments for `+`"))
+        }
+    }
+    Ok(Value::Number(accum))
+});
+
 pub struct Program {
     instructions: Vec<Instruction>,
 }
@@ -148,5 +181,15 @@ mod tests {
                 Instruction::CallFunction { nargs: 2 },
             ]
         );
+    }
+
+    #[test]
+    fn test_plus_builtin() {
+        assert_eq!(
+            Plus.call(vec![Value::Number(3.0), Value::Number(4.0)])
+                .unwrap(),
+            Value::Number(7.0)
+        );
+        assert_eq!(Plus.name(), "+");
     }
 }
