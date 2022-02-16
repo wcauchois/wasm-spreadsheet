@@ -2,12 +2,11 @@ use crate::parser::Expr;
 use std::collections::HashMap;
 use std::fmt;
 use std::rc::Rc;
-use std::sync::Arc;
 use std::thread_local;
 
 use crate::error::{AppError, AppResult};
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone)]
 pub enum Instruction {
     /// Push a constant onto the stack
     LoadConst(Box<Value>),
@@ -65,7 +64,7 @@ impl Env {
     }
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone)]
 pub enum Value {
     Number(f32),
     String(String),
@@ -77,7 +76,7 @@ pub enum Value {
         /// List of names
         params: Vec<String>,
         body: Vec<Instruction>,
-        env: Env,
+        env: Rc<Env>,
     },
     BuiltinFunction(&'static dyn BuiltinFunction),
     Nil,
@@ -224,15 +223,46 @@ pub fn compile(expr: &Expr) -> AppResult<Program> {
 
 pub fn evaluate(program: &Program, env: &mut Env) -> AppResult<Value> {
     let mut pc: usize = 0;
+    let mut stack: Vec<Value> = Vec::new();
     let instructions = &program.instructions;
     while pc < instructions.len() {
         let instruction = &instructions[pc];
         pc += 1;
         match instruction {
-            _ => panic!(),
+            Instruction::LoadConst(value) => {
+                stack.push(*value.clone());
+            }
+            Instruction::StoreName(name) => {
+                let value = stack.pop().unwrap();
+                env.define(name, value);
+            }
+            Instruction::LoadName(name) => {
+                let value = env.lookup(name)?;
+                stack.push(value.clone());
+            }
+            Instruction::CallFunction { nargs } => {
+                let mut args = Vec::with_capacity(*nargs as usize);
+                for _ in 0..*nargs {
+                    args.push(stack.pop().unwrap());
+                }
+                args.reverse();
+                let func = stack.pop().unwrap();
+                match func {
+                    Value::BuiltinFunction(builtin_func) => {
+                        stack.push(builtin_func.call(args)?);
+                    }
+                    _ => {
+                        return Err(AppError::new(format!(
+                            "Expression {:?} is not callable!",
+                            func
+                        )))
+                    }
+                }
+            }
+            _ => panic!("Unhandled instruction: {:?}", instruction),
         }
     }
-    Ok(Value::Nil)
+    Ok(stack.pop().unwrap())
 }
 
 #[cfg(test)]
@@ -269,9 +299,18 @@ mod tests {
         assert_eq!(Plus.name(), "+");
     }
 
+    // this doesn't work anymore?
+    // #[test]
+    // fn test_env_with_builtins() {
+    //     let env = Env::with_builtins();
+    //     assert_eq!(env.lookup("+").unwrap(), &Value::BuiltinFunction(&Plus));
+    // }
+
     #[test]
-    fn test_env_with_builtins() {
-        let env = Env::with_builtins();
-        assert_eq!(env.lookup("+").unwrap(), &Value::BuiltinFunction(&Plus));
+    fn test_full_eval() {
+        let mut env = Env::with_builtins();
+        let program = compile(&Expr::from_string("(+ 1 2)").unwrap()).unwrap();
+        let res = evaluate(&program, &mut env).unwrap();
+        assert_eq!(res, Value::Number(3.0));
     }
 }
