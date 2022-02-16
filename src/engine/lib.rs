@@ -4,9 +4,10 @@ extern crate nom;
 use std::collections::HashMap;
 use wasm_bindgen::prelude::*;
 
+mod dep_graph;
 mod parser;
 
-#[derive(Eq, PartialEq, Hash)]
+#[derive(Eq, PartialEq, Hash, Clone)]
 struct SheetAddress {
     row: i32,
     col: i32,

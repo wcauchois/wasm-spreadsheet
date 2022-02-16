@@ -13,6 +13,15 @@ def raze_fetch_remote_crates():
     """This function defines a collection of repos and should be called in a WORKSPACE file"""
     maybe(
         http_archive,
+        name = "raze__bitmaps__2_1_0",
+        url = "https://crates.io/api/v1/crates/bitmaps/2.1.0/download",
+        type = "tar.gz",
+        strip_prefix = "bitmaps-2.1.0",
+        build_file = Label("//cargo/remote:BUILD.bitmaps-2.1.0.bazel"),
+    )
+
+    maybe(
+        http_archive,
         name = "raze__bumpalo__3_9_1",
         url = "https://crates.io/api/v1/crates/bumpalo/3.9.1/download",
         type = "tar.gz",
@@ -39,6 +48,15 @@ def raze_fetch_remote_crates():
         sha256 = "a06aeb73f470f66dcdbf7223caeebb85984942f22f1adb2a088cf9668146bbbc",
         strip_prefix = "console_error_panic_hook-0.1.7",
         build_file = Label("//cargo/remote:BUILD.console_error_panic_hook-0.1.7.bazel"),
+    )
+
+    maybe(
+        http_archive,
+        name = "raze__imbl__1_0_1",
+        url = "https://crates.io/api/v1/crates/imbl/1.0.1/download",
+        type = "tar.gz",
+        strip_prefix = "imbl-1.0.1",
+        build_file = Label("//cargo/remote:BUILD.imbl-1.0.1.bazel"),
     )
 
     maybe(
@@ -110,12 +128,48 @@ def raze_fetch_remote_crates():
 
     maybe(
         http_archive,
+        name = "raze__rand_core__0_6_3",
+        url = "https://crates.io/api/v1/crates/rand_core/0.6.3/download",
+        type = "tar.gz",
+        strip_prefix = "rand_core-0.6.3",
+        build_file = Label("//cargo/remote:BUILD.rand_core-0.6.3.bazel"),
+    )
+
+    maybe(
+        http_archive,
+        name = "raze__rand_xoshiro__0_6_0",
+        url = "https://crates.io/api/v1/crates/rand_xoshiro/0.6.0/download",
+        type = "tar.gz",
+        strip_prefix = "rand_xoshiro-0.6.0",
+        build_file = Label("//cargo/remote:BUILD.rand_xoshiro-0.6.0.bazel"),
+    )
+
+    maybe(
+        http_archive,
+        name = "raze__sized_chunks__0_6_5",
+        url = "https://crates.io/api/v1/crates/sized-chunks/0.6.5/download",
+        type = "tar.gz",
+        strip_prefix = "sized-chunks-0.6.5",
+        build_file = Label("//cargo/remote:BUILD.sized-chunks-0.6.5.bazel"),
+    )
+
+    maybe(
+        http_archive,
         name = "raze__syn__1_0_86",
         url = "https://crates.io/api/v1/crates/syn/1.0.86/download",
         type = "tar.gz",
         sha256 = "8a65b3f4ffa0092e9887669db0eae07941f023991ab58ea44da8fe8e2d511c6b",
         strip_prefix = "syn-1.0.86",
         build_file = Label("//cargo/remote:BUILD.syn-1.0.86.bazel"),
+    )
+
+    maybe(
+        http_archive,
+        name = "raze__typenum__1_15_0",
+        url = "https://crates.io/api/v1/crates/typenum/1.15.0/download",
+        type = "tar.gz",
+        strip_prefix = "typenum-1.15.0",
+        build_file = Label("//cargo/remote:BUILD.typenum-1.15.0.bazel"),
     )
 
     maybe(
