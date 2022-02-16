@@ -13,6 +13,8 @@ use nom::{
     IResult,
 };
 
+use crate::error::AppError;
+
 #[derive(Debug, PartialEq, Clone)]
 pub enum Expr {
     Number(f32),
@@ -116,9 +118,9 @@ fn parse_expr<'a>(input: &'a str) -> ExprParseResult {
     )(input)
 }
 
-pub fn parse(src: &str) -> Result<Expr, String> {
+pub fn parse(src: &str) -> Result<Expr, AppError> {
     parse_expr(src)
-        .map_err(|e: nom::Err<VerboseError<&str>>| format!("{:#?}", e))
+        .map_err(|e: nom::Err<VerboseError<&str>>| AppError::new(format!("{:#?}", e)))
         .map(|(_, exp)| exp)
 }
 
@@ -250,5 +252,11 @@ mod tests {
             vec!["hello".to_string(), "world".to_string(), "blah".to_string()]
         );
         assert_eq!(visitor.visited_symbols, vec!["baz".to_string()]);
+    }
+
+    #[test]
+    fn test_parse_error() {
+        let res = parse("(asdf");
+        assert!(res.is_err());
     }
 }

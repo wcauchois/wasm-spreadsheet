@@ -11,7 +11,7 @@ pub trait Node<I> {
     fn get_deps<'a>(&'a self) -> &'a Vec<I>;
 }
 
-impl<I: fmt::Debug> fmt::Debug for Node<I> {
+impl<I: fmt::Debug> fmt::Debug for dyn Node<I> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.debug_struct("Node").field("id", &self.get_id()).finish()
     }

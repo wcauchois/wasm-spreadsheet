@@ -6,6 +6,8 @@ use std::collections::HashMap;
 use wasm_bindgen::prelude::*;
 
 mod dep_graph;
+mod error;
+mod interpreter;
 mod parser;
 
 #[derive(Eq, PartialEq, Hash, Clone)]
