@@ -107,11 +107,6 @@ where
             .relative_complement(node_deps_set.clone());
 
         let mut rdeps = self.rdeps.clone();
-        println!("new deps: {:?}", node_deps);
-        println!("new deps set: {:?}", node_deps_set);
-        println!("old deps: {:?}", old_node_deps);
-        println!("added deps: {:?}", added_node_deps);
-        println!("removed deps: {:?}", removed_node_deps);
         // Add rdeps for added_node_deps
         for node_dep in added_node_deps {
             Self::add_dependency_to_map(&mut rdeps, &node_dep, &node_id);
