@@ -1,4 +1,5 @@
 use crate::parser::Expr;
+use std::cell::RefCell;
 use std::collections::HashMap;
 use std::fmt;
 use std::rc::Rc;
@@ -21,14 +22,14 @@ pub enum Instruction {
     /// Jumps
     RelativeJump { offset: i32 },
     /// Creates a function object from a code object on the stack and pushes it on the stack
-    MakeFunction { nargs: i32 },
+    MakeFunction,
 }
 
 #[derive(Debug, PartialEq)]
 pub struct Env {
     /// Variable assignments within the env
     table: HashMap<String, Value>,
-    parent: Option<Rc<Env>>,
+    parent: Option<Rc<RefCell<Env>>>,
 }
 
 impl Env {
@@ -37,24 +38,47 @@ impl Env {
         self.table.insert(name.to_owned(), value);
     }
 
-    fn lookup<'a>(&'a self, name: &str) -> AppResult<&'a Value> {
-        if let Some(env) = self.resolve(name) {
-            Ok(env.table.get(name).unwrap())
+    fn lookup(&self, name: &str) -> AppResult<Value> {
+        if self.table.contains_key(name) {
+            return Ok(self.table.get(name).unwrap().clone());
         } else {
-            Err(AppError::new(format!("Variable is not defined: {}", name)))
+            let mut current_parent = self.parent.clone();
+            while let Some(parent) = current_parent {
+                if let Some(value) = parent.borrow().table.get(name) {
+                    return Ok(value.clone());
+                }
+                current_parent = parent.borrow().parent.clone();
+            }
+        }
+        Err(AppError::new(format!("Variable is not defined: {}", name)))
+        // if let Some(env) = self.resolve(name) {
+        //     let env_ref = env.borrow();
+        //     let value = env_ref.table.get(name).unwrap();
+        //     Ok(value)
+        // } else {
+        //     Err(AppError::new(format!("Variable is not defined: {}", name)))
+        // }
+    }
+
+    fn child(parent: Rc<RefCell<Env>>) -> Self {
+        Self {
+            table: HashMap::new(),
+            parent: Some(parent),
         }
     }
 
+    /*
     /// Find the env in which the name is bound
-    fn resolve<'a>(&'a self, name: &str) -> Option<&'a Env> {
+    fn resolve<'a>(&self, name: &str) -> Option<Rc<RefCell<Env>>> {
         if self.table.contains_key(name) {
-            Some(self)
+            Some(Rc::new(RefCell::new(*self)))
         } else if let Some(parent) = &self.parent {
-            parent.resolve(name)
+            Some(parent.clone())
         } else {
             None
         }
     }
+    */
 
     pub fn with_builtins() -> Self {
         BUILTINS_ENVIRONMENT.with(|builtins_environment| Self {
@@ -69,6 +93,7 @@ pub enum Value {
     Number(f32),
     String(String),
     Symbol(String),
+    // XXX: Keywords should be resolved to a cell value
     Keyword(String),
     List(Vec<Value>),
     CompiledCode(Vec<Instruction>),
@@ -76,7 +101,7 @@ pub enum Value {
         /// List of names
         params: Vec<String>,
         body: Vec<Instruction>,
-        env: Rc<Env>,
+        env: Rc<RefCell<Env>>,
     },
     BuiltinFunction(&'static dyn BuiltinFunction),
     Nil,
@@ -149,13 +174,13 @@ lazy_static! {
 }
 
 thread_local! {
-    pub static BUILTINS_ENVIRONMENT: Rc<Env> = Rc::new(Env {
+    pub static BUILTINS_ENVIRONMENT: Rc<RefCell<Env>> = Rc::new(RefCell::new(Env {
         table: BUILTIN_FUNCTIONS_BY_NAME
             .iter()
             .map(|(name, func)| (name.clone(), Value::BuiltinFunction(func.clone())))
             .collect(),
         parent: None,
-    });
+    }));
 }
 
 pub struct Program {
@@ -177,6 +202,23 @@ fn compile_to_instructions(expr: &Expr, instructions: &mut Vec<Instruction>) -> 
             instructions.push(Instruction::LoadName(sym.clone()));
         }
         Expr::List(elems) => match elems.as_slice() {
+            [Expr::Symbol(head_sym), Expr::List(params), body] if head_sym == "lambda" => {
+                instructions.push(Instruction::LoadConst(Box::new(Value::List(
+                    params
+                        .iter()
+                        .map(|param| -> AppResult<Value> {
+                            match param {
+                                Expr::Symbol(sym) => Ok(Value::Symbol(sym.clone())),
+                                _ => Err(AppError::new("Expected symbol in parameter list")),
+                            }
+                        })
+                        .collect::<AppResult<Vec<Value>>>()?,
+                ))));
+                instructions.push(Instruction::LoadConst(Box::new(Value::CompiledCode(
+                    compile_to_instruction_vec(body)?,
+                ))));
+                instructions.push(Instruction::MakeFunction);
+            }
             [Expr::Symbol(head_sym), cond, if_true, if_false] if head_sym == "if" => {
                 let true_instructions = compile_to_instruction_vec(if_true)?;
                 let false_instructions = compile_to_instruction_vec(if_false)?;
@@ -203,13 +245,7 @@ fn compile_to_instructions(expr: &Expr, instructions: &mut Vec<Instruction>) -> 
                 let nargs = (elems.len() - 1) as i32;
                 instructions.push(Instruction::CallFunction { nargs });
             }
-            [] => return Err(AppError::new("Expected non-empty list")),
-            [form_name, ..] => {
-                return Err(AppError::new(format!(
-                    "Invalid format for form {:?}",
-                    form_name
-                )))
-            }
+            [] => return Err(AppError::new("Cannot evaluate an empty list")),
         },
     }
     Ok(())
@@ -221,10 +257,12 @@ pub fn compile(expr: &Expr) -> AppResult<Program> {
     })
 }
 
-pub fn eval(program: &Program, env: &mut Env) -> AppResult<Value> {
+pub fn eval_instructions(
+    instructions: &Vec<Instruction>,
+    env: Rc<RefCell<Env>>,
+) -> AppResult<Value> {
     let mut pc: usize = 0;
     let mut stack: Vec<Value> = Vec::new();
-    let instructions = &program.instructions;
     while pc < instructions.len() {
         let instruction = &instructions[pc];
         pc += 1;
@@ -234,11 +272,10 @@ pub fn eval(program: &Program, env: &mut Env) -> AppResult<Value> {
             }
             Instruction::StoreName(name) => {
                 let value = stack.pop().unwrap();
-                env.define(name, value);
+                env.borrow_mut().define(name, value);
             }
             Instruction::LoadName(name) => {
-                let value = env.lookup(name)?;
-                stack.push(value.clone());
+                stack.push(env.borrow().lookup(name)?);
             }
             Instruction::CallFunction { nargs } => {
                 let mut args = Vec::with_capacity(*nargs as usize);
@@ -251,6 +288,17 @@ pub fn eval(program: &Program, env: &mut Env) -> AppResult<Value> {
                     Value::BuiltinFunction(builtin_func) => {
                         stack.push(builtin_func.call(args)?);
                     }
+                    Value::UserFunction {
+                        params,
+                        body,
+                        env: function_env,
+                    } => {
+                        let child_env = Rc::new(RefCell::new(Env::child(function_env)));
+                        for (param, arg) in params.iter().zip(args) {
+                            child_env.borrow_mut().define(param, arg);
+                        }
+                        stack.push(eval_instructions(&body, child_env)?);
+                    }
                     _ => {
                         return Err(AppError::new(format!(
                             "Expression {:?} is not callable!",
@@ -259,10 +307,34 @@ pub fn eval(program: &Program, env: &mut Env) -> AppResult<Value> {
                     }
                 }
             }
+            Instruction::MakeFunction => {
+                if let (Value::CompiledCode(func_instructions), Value::List(param_syms)) =
+                    (stack.pop().unwrap(), stack.pop().unwrap())
+                {
+                    stack.push(Value::UserFunction {
+                        params: param_syms
+                            .iter()
+                            .map(|sym| match sym {
+                                Value::Symbol(s) => s.clone(),
+                                _ => panic!(),
+                            })
+                            .collect(),
+                        body: func_instructions,
+                        env: env.clone(),
+                    });
+                } else {
+                    panic!("Unexpected stack for MakeFunction");
+                }
+            }
             _ => panic!("Unhandled instruction: {:?}", instruction),
         }
     }
     Ok(stack.pop().unwrap())
+}
+
+pub fn eval(program: &Program, env: Env) -> AppResult<Value> {
+    let env_rc = Rc::new(RefCell::new(env));
+    eval_instructions(&program.instructions, env_rc)
 }
 
 #[cfg(test)]
@@ -308,9 +380,9 @@ mod tests {
 
     #[test]
     fn test_full_eval() {
-        let mut env = Env::with_builtins();
+        let env = Env::with_builtins();
         let program = compile(&Expr::from_string("(+ 1 2)").unwrap()).unwrap();
-        let res = eval(&program, &mut env).unwrap();
+        let res = eval(&program, env).unwrap();
         assert_eq!(res, Value::Number(3.0));
     }
 }

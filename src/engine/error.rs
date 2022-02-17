@@ -15,7 +15,7 @@ impl AppError {
 }
 
 impl std::cmp::PartialEq for AppError {
-    fn eq(&self, other: &AppError) -> bool {
+    fn eq(&self, _other: &AppError) -> bool {
         false
     }
 }

@@ -37,8 +37,12 @@ pub trait ExprVisitor {
     fn visit_keyword(&mut self, _kw: &String) {}
 }
 
+pub trait ExprRewriter {
+    fn maybe_rewrite(&self, form: &Vec<Expr>) -> Option<Expr>;
+}
+
 impl Expr {
-    pub fn walk(&self, visitor: &mut dyn ExprVisitor) {
+    pub fn walk<T: ExprVisitor>(&self, visitor: &mut T) {
         match self {
             Expr::Number(num) => visitor.visit_number(*num),
             Expr::String(s) => visitor.visit_string(&s),
@@ -49,6 +53,16 @@ impl Expr {
                     expr.walk(visitor);
                 }
             }
+        }
+    }
+
+    pub fn rewrite<T: ExprRewriter>(&self, rewriter: &T) -> Expr {
+        match self {
+            Expr::List(exprs) => match rewriter.maybe_rewrite(exprs) {
+                Some(new_form) => new_form,
+                None => Expr::List(exprs.iter().map(|expr| expr.rewrite(rewriter)).collect()),
+            },
+            _ => self.clone(),
         }
     }
 }

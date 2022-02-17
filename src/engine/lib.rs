@@ -4,6 +4,7 @@ extern crate nom;
 #[macro_use]
 extern crate lazy_static;
 
+use std::cell::RefCell;
 use std::collections::HashMap;
 use wasm_bindgen::prelude::*;
 
@@ -64,8 +65,8 @@ impl Sheet {
         || -> error::AppResult<String> {
             let expr = parser::parse(input)?;
             let program = interpreter::compile(&expr)?;
-            let mut env = interpreter::Env::with_builtins();
-            let res = interpreter::eval(&program, &mut env)?;
+            let env = interpreter::Env::with_builtins();
+            let res = interpreter::eval(&program, env)?;
             Ok(format!("{:?}", res))
         }()
         .map_err(|err| JsValue::from_str(format!("{}", err).as_str()))
