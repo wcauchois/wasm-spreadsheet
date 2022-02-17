@@ -4,7 +4,7 @@ extern crate nom;
 #[macro_use]
 extern crate lazy_static;
 
-use std::cell::RefCell;
+use std::cell::Cell;
 use std::collections::HashMap;
 use wasm_bindgen::prelude::*;
 
@@ -20,18 +20,48 @@ struct SheetAddress {
 }
 
 struct SheetFormula {
-    expr: parser::Expr,
+    address: SheetAddress,
+    program: interpreter::Program,
     references: Vec<SheetAddress>,
 }
 
-enum SheetCellValue {
-    LiteralNumber(f32),
-    LiteralText(String),
-    Formula(SheetFormula),
+impl dep_graph::Node<SheetAddress> for SheetFormula {
+    fn get_id(&self) -> SheetAddress {
+        self.address.clone()
+    }
+
+    fn get_deps<'a>(&'a self) -> &'a Vec<SheetAddress> {
+        &self.references
+    }
+}
+
+// on cell change: get dependents, recompute the computed value..
+
+enum SheetCellComputedValue {
+    Number(f32),
+    Text(String),
+    Invalid { message: String },
+}
+
+impl SheetCellComputedValue {
+    fn from_interpreted_value(ivalue: interpreter::Value) -> Self {
+        match ivalue {
+            interpreter::Value::Number(n) => SheetCellComputedValue::Number(n),
+            interpreter::Value::String(n) => SheetCellComputedValue::Text(n),
+            _ => SheetCellComputedValue::Invalid {
+                message: format!("Expression is not representable in a cell: {:?}", ivalue),
+            },
+        }
+    }
+}
+
+struct SheetCellValue {
+    computed_value: Cell<SheetCellComputedValue>,
+    formula: Option<SheetFormula>,
 }
 
 struct SheetCell {
-    value: i32,
+    value: SheetCellValue,
 }
 
 #[wasm_bindgen]
@@ -42,15 +72,17 @@ pub struct Sheet {
 #[wasm_bindgen]
 impl Sheet {
     pub fn get_cell(&mut self, row: i32, col: i32) -> i32 {
-        self.cells
-            .get(&SheetAddress { row, col })
-            .map(|cell| cell.value)
-            .unwrap_or(0)
+        panic!()
+        // self.cells
+        //     .get(&SheetAddress { row, col })
+        //     .map(|cell| cell.value)
+        //     .unwrap_or(0)
     }
 
     pub fn set_cell(&mut self, row: i32, col: i32, value: i32) {
-        self.cells
-            .insert(SheetAddress { row, col }, SheetCell { value });
+        panic!();
+        // self.cells
+        //     .insert(SheetAddress { row, col }, SheetCell { value });
     }
 
     pub fn debug_parse_expr(&mut self, input: &str) -> String {

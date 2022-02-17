@@ -144,6 +144,26 @@ pub fn parse(src: &str) -> AppResult<Expr> {
         .map(|(_, exp)| exp)
 }
 
+pub enum InterpretCellResult {
+    Number(f32),
+    Text(String),
+    Expr(Expr),
+}
+
+pub fn interpret_cell(contents: &str) -> AppResult<InterpretCellResult> {
+    let mut char_iter = contents.chars();
+    if let Some('=') = char_iter.next() {
+        let rest_of_formula = char_iter.collect::<String>();
+        let expr = Expr::from_string(rest_of_formula)?;
+        Ok(InterpretCellResult::Expr(expr))
+    } else {
+        Ok(match contents.parse::<f32>() {
+            Ok(number) => InterpretCellResult::Number(number),
+            Err(_) => InterpretCellResult::Text(String::from(contents)),
+        })
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
