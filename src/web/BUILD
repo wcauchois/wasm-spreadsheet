@@ -28,6 +28,7 @@ js_library(
 
 esbuild_config(
     name = "esbuild_config",
+    srcs = glob(["**/*.css"]),
     config_file = "esbuild.config.mjs",
     deps = [
         ":bindgen_esbuild_plugin",
@@ -38,7 +39,10 @@ esbuild(
     name = "bundle",
     config = ":esbuild_config",
     entry_point = "index.tsx",
-    deps = [":lib"],
+    output_css = "bundle.css",
+    deps = [
+        ":lib",
+    ],
 )
 
 http_server(

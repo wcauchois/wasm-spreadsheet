@@ -14,5 +14,5 @@ export default function Main() {
     <div>
       <Sheet modelRef={sheet} />
     </div>
-  )
+  );
 }
