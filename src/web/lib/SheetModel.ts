@@ -1,6 +1,6 @@
 import { JsSheet } from "engine_lib_wasm_bindgen";
 
-export default class Sheet {
+export default class SheetModel {
   private readonly underlying: JsSheet;
 
   constructor() {
