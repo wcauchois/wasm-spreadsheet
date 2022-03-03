@@ -1,51 +1,84 @@
 import SheetModel from "../lib/SheetModel";
-import React, { useState } from "react";
-import { Range } from "immutable";
+import React, { useReducer, useState } from "react";
+import Immutable, { Range } from "immutable";
 import SheetCell from "./SheetCell";
 
 const WIDTH = 10;
 const HEIGHT = 10;
 
-export default function Sheet({
-  modelRef
-}: {
-  modelRef: React.MutableRefObject<SheetModel | undefined>
-}) {
-  /*
-  [
-    [1, 2],
-    [3, 4]
-  ]
-  */
-  const [cellNonces, setCellNonces] = useState(() =>
-    Range(0, HEIGHT).map((_col) => Range(0, WIDTH).map((_row) => 1))
+export default function Sheet({ model }: { model: SheetModel }) {
+  const [cellNonces, incrCellNonce] = useReducer(
+    (
+      state: Immutable.Seq.Indexed<Immutable.Seq.Indexed<number>>,
+      action: {
+        row: number;
+        col: number;
+      }
+    ) =>
+      state.map((row, rowIndex) =>
+        row.map((nonce, colIndex) =>
+          action.row === rowIndex && action.col === colIndex ? nonce + 1 : nonce
+        )
+      ),
+    Range(0, HEIGHT).map((_row) => Range(0, WIDTH).map((_col) => 1))
   );
 
   const [focusedCell, setFocusedCell] = useState<[number, number] | null>(null);
   const [editingCell, setEditingCell] = useState<[number, number] | null>(null);
 
-  const cells = Range(0, HEIGHT).map((col) => (
-    <div className="sheet--row">
-      {Range(0, WIDTH).map((row) => (
-        <SheetCell
-          key={cellNonces.getIn([col, row]) as number}
-          contents="hi"
-          onClick={() => {
-            setFocusedCell([row, col]);
-          }}
-          onStartEditing={() => {
-            setEditingCell([row, col]);
-          }}
-          focused={!!focusedCell && focusedCell[0] === row && focusedCell[1] === col}
-          editing={!!editingCell && editingCell[0] === row && editingCell[1] === col}
-        />
-      )).toJS()}
-    </div>
-  )).toJS();
+  const cells = Range(0, HEIGHT)
+    .map((row) => (
+      <div className="sheet--row" key={`row-${row}`}>
+        {Range(0, WIDTH)
+          .map((col) => (
+            <SheetCell
+              key={`cell-${col}-${cellNonces.getIn([row, col])}`}
+              contents={model.getCell(row, col) ?? ""}
+              onFinishedEditing={(newContents) => {
+                model.setCell(row, col, newContents);
+                setEditingCell(null);
+                incrCellNonce({ row, col });
+              }}
+              onCancelEditing={() => {
+                setEditingCell(null);
+              }}
+              onClick={() => {
+                setFocusedCell([col, row]);
+              }}
+              onStartEditing={() => {
+                setEditingCell([col, row]);
+              }}
+              focused={
+                !!focusedCell &&
+                focusedCell[0] === col &&
+                focusedCell[1] === row
+              }
+              editing={
+                !!editingCell &&
+                editingCell[0] === col &&
+                editingCell[1] === row
+              }
+            />
+          ))
+          .toJS()}
+      </div>
+    ))
+    .toJS();
 
   return (
-    <div className="sheet">
-      {cells}
+    <div
+      className="sheet"
+      // onKeyDown={(e) => {
+      //   if (e.currentTarget.tagName === "input") {
+      //     return;
+      //   }
+      //   if (e.key === "Enter") {
+      //     setEditingCell(focusedCell);
+      //   }
+      // }}
+      // tabIndex={0}
+    >
+      ,{cells}
     </div>
   );
 }

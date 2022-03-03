@@ -1,18 +1,17 @@
 import SheetModel from "../lib/SheetModel";
-import React, { useEffect, useRef } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import Sheet from "./Sheet";
 
 export default function Main() {
-  const sheet = useRef<SheetModel>();
-
-  useEffect(() => {
-    sheet.current = new SheetModel();
-    (window as any).__sheet__ = sheet.current;
-  }, [sheet]);
+  const [model] = useState(() => {
+    const ret = new SheetModel();
+    (window as any).__sheet__ = ret;
+    return ret;
+  });
 
   return (
     <div>
-      <Sheet modelRef={sheet} />
+      <Sheet model={model} />
     </div>
   );
 }

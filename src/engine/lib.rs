@@ -124,9 +124,18 @@ impl Sheet {
     }
 
     pub fn new() -> Self {
-        Self {
-            cells: HashMap::new(),
-        }
+        let mut cells = HashMap::new();
+        cells.insert(
+            SheetAddress { row: 3, col: 3 },
+            SheetCell {
+                computed_value: SheetCellComputedValue::Text("foo".to_string()),
+                formula: None,
+            },
+        );
+        Self { cells } // TEMP
+                       // Self {
+                       //     cells: HashMap::new(),
+                       // }
     }
 }
 

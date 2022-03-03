@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import classNames from "classnames";
 
 export interface SheetCellProps {
   contents: string;
@@ -6,6 +7,8 @@ export interface SheetCellProps {
   focused: boolean;
   onStartEditing(): void;
   editing: boolean;
+  onCancelEditing(): void;
+  onFinishedEditing(newContents: string): void;
 }
 
 export default function SheetCell({
@@ -13,25 +16,45 @@ export default function SheetCell({
   onClick,
   focused,
   onStartEditing,
-  editing
+  onCancelEditing,
+  onFinishedEditing,
+  editing,
 }: SheetCellProps) {
   const [pendingContents, setPendingContents] = useState("");
 
-  // TODO: classnames
-  let className = "sheet--cell";
-  if (focused) {
-    className += " sheet--cell__focused";
-  }
+  const className = classNames("sheet--cell", {
+    "sheet--cell__focused": focused,
+  });
+
   return (
-    <div className={className} onClick={onClick} onDoubleClick={() => {
-      onStartEditing();
-      setPendingContents(contents);
-    }}>
-      {editing ? <input autoFocus type="text" value={pendingContents} onChange={e => {
-        setPendingContents(e.currentTarget.value);
-      }} /> : <div>
-        {contents}
-      </div>}
+    <div
+      className={className}
+      onClick={onClick}
+      onDoubleClick={() => {
+        onStartEditing();
+        setPendingContents(contents);
+      }}
+    >
+      {editing ? (
+        <input
+          autoFocus
+          type="text"
+          value={pendingContents}
+          onKeyDown={(e) => {
+            if (e.key === "Escape") {
+              onCancelEditing();
+            }
+            if (e.key === "Enter") {
+              onFinishedEditing(pendingContents);
+            }
+          }}
+          onChange={(e) => {
+            setPendingContents(e.currentTarget.value);
+          }}
+        />
+      ) : (
+        <div>{contents}</div>
+      )}
     </div>
   );
 }

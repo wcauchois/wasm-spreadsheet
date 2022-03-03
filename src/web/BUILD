@@ -13,6 +13,7 @@ ts_project(
         "//src/engine:engine_lib_wasm_bindgen",
         "@npm//@types/react",
         "@npm//@types/react-dom",
+        "@npm//classnames",
         "@npm//immutable",
         "@npm//react",
         "@npm//react-dom",

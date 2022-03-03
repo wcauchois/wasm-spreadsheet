@@ -54,8 +54,21 @@ define_builtin_function!(Plus, "+", args => {
     Ok(Value::Number(accum))
 });
 
+define_builtin_function!(Mult, "*", args => {
+    let mut accum: f32 = 1.0;
+    for arg in args {
+        match arg {
+            Value::Number(n) => {
+                accum *= n;
+            }
+            _ => return Err(AppError::new("Bad arguments for `*`"))
+        }
+    }
+    Ok(Value::Number(accum))
+});
+
 lazy_static! {
-    static ref BUILTIN_FUNCTIONS: Vec<&'static dyn BuiltinFunction> = vec![&Plus];
+    static ref BUILTIN_FUNCTIONS: Vec<&'static dyn BuiltinFunction> = vec![&Plus, &Mult];
     static ref BUILTIN_FUNCTIONS_BY_NAME: HashMap<String, &'static dyn BuiltinFunction> =
         BUILTIN_FUNCTIONS
             .iter()
