@@ -67,7 +67,7 @@ impl Expr {
     }
 }
 
-type ParseResult<'a, T> = IResult<&'a str, T, VerboseError<&'a str>>;
+pub type ParseResult<'a, T> = IResult<&'a str, T, VerboseError<&'a str>>;
 type ExprParseResult<'a> = ParseResult<'a, Expr>;
 
 fn parse_number<'a>(input: &'a str) -> ExprParseResult<'a> {
