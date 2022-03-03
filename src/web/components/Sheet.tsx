@@ -112,7 +112,7 @@ export default function Sheet({ model }: { model: SheetModel }) {
       // }}
       // tabIndex={0}
     >
-      ,{cells}
+      {cells}
     </div>
   );
 }
