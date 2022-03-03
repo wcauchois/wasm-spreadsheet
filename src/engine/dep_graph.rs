@@ -1,5 +1,6 @@
 use imbl::{HashMap, HashSet};
 use std::fmt;
+use std::fmt::Write;
 use std::hash::Hash;
 
 // Somewhat based on this dep_graph crate: https://docs.rs/dep-graph/latest/dep_graph/struct.DepGraph.html
@@ -122,6 +123,17 @@ where
             deps,
             rdeps,
         }
+    }
+
+    pub fn to_graphviz(&self) -> String {
+        let mut buffer = String::from("digraph G {\n");
+        for (node, deps) in self.deps.iter() {
+            for dep in deps.iter() {
+                write!(&mut buffer, "{:?} -> {:?}\n", node, dep);
+            }
+        }
+        buffer += "}\n";
+        buffer
     }
 }
 
