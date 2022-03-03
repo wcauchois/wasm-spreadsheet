@@ -17,6 +17,7 @@ ts_project(
         "@npm//immutable",
         "@npm//react",
         "@npm//react-dom",
+        "@npm//react-hotkeys-hook",
     ],
 )
 
