@@ -14,8 +14,52 @@ use crate::parser::ParseResult;
 
 #[derive(Eq, PartialEq, Hash, Clone, Debug)]
 pub struct SheetRange {
-    start: SheetAddress,
-    end: SheetAddress,
+    pub start: SheetAddress,
+    pub end: SheetAddress,
+}
+
+#[derive(Debug)]
+pub struct SheetRangeAddresses {
+    cur_col: i32,
+    max_col: i32,
+    min_col: i32,
+    cur_row: i32,
+    max_row: i32,
+}
+
+impl Iterator for SheetRangeAddresses {
+    type Item = SheetAddress;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        if self.cur_row > self.max_row {
+            return None;
+        }
+
+        let result = SheetAddress {
+            row: self.cur_row,
+            col: self.cur_col,
+        };
+
+        self.cur_col += 1;
+        if self.cur_col > self.max_col {
+            self.cur_col = self.min_col;
+            self.cur_row += 1;
+        }
+
+        Some(result)
+    }
+}
+
+impl SheetRangeAddresses {
+    fn new(range: &SheetRange) -> Self {
+        SheetRangeAddresses {
+            cur_col: range.start.col,
+            min_col: range.start.col,
+            max_col: range.end.col,
+            cur_row: range.start.row,
+            max_row: range.end.row,
+        }
+    }
 }
 
 fn parse_sheet_column<'a>(input: &'a str) -> ParseResult<'a, i32> {
@@ -73,6 +117,10 @@ impl SheetRange {
         }
         Ok(range)
     }
+
+    pub fn addresses(&self) -> SheetRangeAddresses {
+        SheetRangeAddresses::new(self)
+    }
 }
 
 #[cfg(test)]
@@ -116,6 +164,40 @@ mod tests {
                     end: SheetAddress { row: 5, col: 2 },
                 }
             ))
+        );
+    }
+
+    #[test]
+    fn test_sheet_range_addresses() {
+        let range = SheetRange {
+            start: SheetAddress { row: 1, col: 1 },
+            end: SheetAddress { row: 3, col: 3 },
+        };
+
+        assert_eq!(
+            range.addresses().collect::<Vec<_>>(),
+            vec![
+                SheetAddress { row: 1, col: 1 },
+                SheetAddress { row: 1, col: 2 },
+                SheetAddress { row: 1, col: 3 },
+                SheetAddress { row: 2, col: 1 },
+                SheetAddress { row: 2, col: 2 },
+                SheetAddress { row: 2, col: 3 },
+                SheetAddress { row: 3, col: 1 },
+                SheetAddress { row: 3, col: 2 },
+                SheetAddress { row: 3, col: 3 },
+            ]
+        );
+
+        // Same start as end
+        let range = SheetRange {
+            start: SheetAddress { row: 1, col: 1 },
+            end: SheetAddress { row: 1, col: 1 },
+        };
+
+        assert_eq!(
+            range.addresses().collect::<Vec<_>>(),
+            vec![SheetAddress { row: 1, col: 1 }]
         );
     }
 }

@@ -18,6 +18,9 @@ rust_shared_library(
 rust_test(
     name = "engine_lib_wasm_test",
     crate = ":engine_lib_wasm",
+    # env = {
+    #     "RUST_TEST_NOCAPTURE": "1",
+    # },
 )
 
 rust_wasm_bindgen(

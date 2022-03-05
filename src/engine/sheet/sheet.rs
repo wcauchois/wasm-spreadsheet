@@ -2,6 +2,7 @@ use std::collections::HashMap;
 use std::fmt;
 
 use crate::dep_graph;
+use crate::dep_graph::DepGraph;
 use crate::error::AppResult;
 use crate::interpreter;
 use crate::parser::{interpret_cell, InterpretCellResult};
@@ -67,8 +68,10 @@ struct SheetCell {
 
 pub struct Sheet {
     cells: HashMap<SheetAddress, SheetCell>,
-    // dep_graph: Cell<DepGraph<SheetAddress>>,
+    dep_graph: DepGraph<SheetAddress>,
 }
+
+struct ExprReferencesVisitor {}
 
 impl Sheet {
     pub fn set_cell(&mut self, address: SheetAddress, contents: String) -> AppResult<()> {
@@ -111,6 +114,7 @@ impl Sheet {
     pub fn new() -> Self {
         Self {
             cells: HashMap::new(),
+            dep_graph: DepGraph::empty(),
         }
     }
 }

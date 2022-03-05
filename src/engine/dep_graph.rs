@@ -75,6 +75,14 @@ where
         }
     }
 
+    pub fn empty() -> Self {
+        Self {
+            deps: DependencyMap::new(),
+            rdeps: DependencyMap::new(),
+            ready_nodes: HashSet::new(),
+        }
+    }
+
     pub fn get_direct_dependents(&self, id: I) -> Box<dyn Iterator<Item = I> + '_> {
         match self.rdeps.get(&id) {
             Some(node_rdeps) => Box::new(node_rdeps.iter().cloned()),
