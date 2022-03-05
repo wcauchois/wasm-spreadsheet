@@ -12,6 +12,7 @@ pub struct SheetFormula {
     address: SheetAddress,
     program: interpreter::Program,
     references: Vec<SheetAddress>,
+    source: String,
 }
 
 impl dep_graph::Node<SheetAddress> for SheetFormula {
@@ -91,6 +92,7 @@ impl Sheet {
                         address: address.clone(),
                         program,
                         references: Vec::new(), // TODO
+                        source: contents.clone(),
                     }),
                 }
             }
