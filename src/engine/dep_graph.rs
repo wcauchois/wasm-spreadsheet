@@ -12,6 +12,30 @@ pub trait Node<I> {
     fn get_deps<'a>(&'a self) -> &'a Vec<I>;
 }
 
+struct EmptyNode<I> {
+    id: I,
+    empty_vec: Vec<I>,
+}
+
+impl<I: Clone> Node<I> for EmptyNode<I> {
+    fn get_id(&self) -> I {
+        self.id.clone()
+    }
+
+    fn get_deps<'a>(&'a self) -> &'a Vec<I> {
+        &self.empty_vec
+    }
+}
+
+impl<I: Clone> EmptyNode<I> {
+    fn new(id: &I) -> Self {
+        EmptyNode {
+            id: id.clone(),
+            empty_vec: vec![],
+        }
+    }
+}
+
 impl<I: fmt::Debug> fmt::Debug for dyn Node<I> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.debug_struct("Node").field("id", &self.get_id()).finish()
@@ -133,11 +157,15 @@ where
         }
     }
 
+    pub fn clear_id(&self, id: &I) -> Self {
+        self.update_node(&EmptyNode::new(id))
+    }
+
     pub fn to_graphviz(&self) -> String {
         let mut buffer = String::from("digraph G {\n");
         for (node, deps) in self.deps.iter() {
             for dep in deps.iter() {
-                write!(&mut buffer, "{:?} -> {:?}\n", node, dep);
+                write!(&mut buffer, "\"{:?}\" -> \"{:?}\"\n", node, dep);
             }
         }
         buffer += "}\n";

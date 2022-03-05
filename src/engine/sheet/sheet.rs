@@ -3,10 +3,11 @@ use std::fmt;
 
 use crate::dep_graph;
 use crate::dep_graph::DepGraph;
-use crate::error::AppResult;
+use crate::error::{AppError, AppResult};
 use crate::interpreter;
-use crate::parser::{interpret_cell, InterpretCellResult};
+use crate::parser::{interpret_cell, Expr, ExprVisitor, InterpretCellResult};
 
+use super::sheet_range::SheetRange;
 use super::SheetAddress;
 
 pub struct SheetFormula {
@@ -71,7 +72,33 @@ pub struct Sheet {
     dep_graph: DepGraph<SheetAddress>,
 }
 
-struct ExprReferencesVisitor {}
+struct ExprReferencesVisitor {
+    references: Vec<SheetAddress>,
+    errors: Vec<AppError>,
+}
+
+impl ExprVisitor for ExprReferencesVisitor {
+    fn visit_keyword(&mut self, kw: &String) {
+        match SheetRange::parse(kw) {
+            Err(error) => self.errors.push(error),
+            Ok(range) => self.references.extend(range.addresses()),
+        }
+    }
+}
+
+fn get_references_for_expr(expr: &Expr) -> AppResult<Vec<SheetAddress>> {
+    let mut visitor = ExprReferencesVisitor {
+        references: Vec::new(),
+        errors: Vec::new(),
+    };
+    expr.walk(&mut visitor);
+    if visitor.errors.len() > 0 {
+        // TODO: Include actual error messages
+        Err(AppError::new("One or more ranges failed to parse"))
+    } else {
+        Ok(visitor.references)
+    }
+}
 
 impl Sheet {
     pub fn set_cell(&mut self, address: SheetAddress, contents: String) -> AppResult<()> {
@@ -88,17 +115,22 @@ impl Sheet {
             InterpretCellResult::Expr(expr) => {
                 let program = interpreter::compile(&expr)?;
                 let env = interpreter::Env::with_builtins();
-                let res = interpreter::eval(&program, env)?;
+                let result = interpreter::eval(&program, env)?;
+                let references = get_references_for_expr(&expr)?;
                 SheetCell {
-                    computed_value: SheetCellComputedValue::from_interpreter_value(res),
+                    computed_value: SheetCellComputedValue::from_interpreter_value(result),
                     formula: Some(SheetFormula {
                         address: address.clone(),
                         program,
-                        references: Vec::new(), // TODO
+                        references,
                         source: contents.clone(),
                     }),
                 }
             }
+        };
+        self.dep_graph = match &new_cell.formula {
+            Some(formula) => self.dep_graph.update_node(formula),
+            None => self.dep_graph.clear_id(&address),
         };
         self.cells.insert(address, new_cell);
         Ok(())
@@ -111,10 +143,37 @@ impl Sheet {
             .unwrap_or(SheetCellComputedValue::empty())
     }
 
+    pub fn debug_graphviz(&self) -> String {
+        self.dep_graph.to_graphviz()
+    }
+
     pub fn new() -> Self {
         Self {
             cells: HashMap::new(),
             dep_graph: DepGraph::empty(),
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_get_references_for_expr() {
+        let result = get_references_for_expr(&Expr::List(vec![
+            Expr::Keyword("a1".to_string()),
+            Expr::Keyword("b4".to_string()),
+        ]));
+        assert_eq!(
+            result,
+            Ok(vec![
+                SheetAddress { col: 0, row: 0 },
+                SheetAddress { col: 1, row: 3 }
+            ])
+        );
+
+        let result = get_references_for_expr(&Expr::Keyword("a1".to_string()));
+        assert_eq!(result, Ok(vec![SheetAddress { col: 0, row: 0 },]));
     }
 }

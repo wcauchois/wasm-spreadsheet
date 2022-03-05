@@ -51,6 +51,10 @@ impl JsSheet {
         .map_err(|err| JsValue::from_str(format!("{}", err).as_str()))
     }
 
+    pub fn debug_graphviz(&self) -> String {
+        self.0.debug_graphviz()
+    }
+
     pub fn new() -> Self {
         console_error_panic_hook::set_once();
         JsSheet(Sheet::new())
