@@ -67,8 +67,13 @@ define_builtin_function!(Mult, "*", args => {
     Ok(Value::Number(accum))
 });
 
+define_builtin_function!(Show, "show", args => {
+    let arg = args.first().ok_or(AppError::new("Bad arguments for `show`"))?;
+    Ok(Value::String(format!("{:?}", arg)))
+});
+
 lazy_static! {
-    static ref BUILTIN_FUNCTIONS: Vec<&'static dyn BuiltinFunction> = vec![&Plus, &Mult];
+    static ref BUILTIN_FUNCTIONS: Vec<&'static dyn BuiltinFunction> = vec![&Plus, &Mult, &Show];
     static ref BUILTIN_FUNCTIONS_BY_NAME: HashMap<String, &'static dyn BuiltinFunction> =
         BUILTIN_FUNCTIONS
             .iter()

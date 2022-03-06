@@ -124,9 +124,14 @@ fn parse_expr<'a>(input: &'a str) -> ExprParseResult {
         |exprs| Expr::List(exprs),
     );
 
+    let parse_quoted_expr = map(preceded(tag("'"), parse_expr), |expr| {
+        Expr::List(vec![Expr::Symbol("quote".into()), expr])
+    });
+
     preceded(
         multispace0,
         alt((
+            parse_quoted_expr,
             parse_number,
             parse_string,
             // Order matters: number+string must go above symbol parsing, since
@@ -233,6 +238,17 @@ mod tests {
                     Expr::Symbol("you".into()),
                     Expr::Keyword("guy".into()),
                 ])
+            ]))
+        );
+    }
+
+    #[test]
+    fn test_parse_quotation() {
+        assert_eq!(
+            parse("'(1 2)"),
+            Ok(Expr::List(vec![
+                Expr::Symbol("quote".into()),
+                Expr::List(vec![Expr::Number(1.0), Expr::Number(2.0)])
             ]))
         );
     }
