@@ -72,6 +72,12 @@ pub struct Sheet {
     dep_graph: DepGraph<SheetAddress>,
 }
 
+impl interpreter::KeywordResolver for Sheet {
+    fn resolve_keyword(&self, kw: &str) -> AppResult<interpreter::Value> {
+        Ok(interpreter::Value::Nil)
+    }
+}
+
 struct ExprReferencesVisitor {
     references: Vec<SheetAddress>,
     errors: Vec<AppError>,
@@ -115,7 +121,7 @@ impl Sheet {
             InterpretCellResult::Expr(expr) => {
                 let program = interpreter::compile(&expr)?;
                 let env = interpreter::Env::with_builtins();
-                let result = interpreter::eval(&program, env)?;
+                let result = interpreter::eval(&program, env, &*self)?;
                 let references = get_references_for_expr(&expr)?;
                 SheetCell {
                     computed_value: SheetCellComputedValue::from_interpreter_value(result),

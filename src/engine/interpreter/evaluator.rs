@@ -8,7 +8,29 @@ use super::compiler::Program;
 use super::env::Env;
 use super::model::{Instruction, Value};
 
-fn eval_instructions(instructions: &Vec<Instruction>, env: Rc<RefCell<Env>>) -> AppResult<Value> {
+pub trait KeywordResolver {
+    fn resolve_keyword(&self, kw: &str) -> AppResult<Value>;
+}
+
+impl KeywordResolver {
+    pub fn empty() -> EmptyKeywordResolver {
+        EmptyKeywordResolver
+    }
+}
+
+pub struct EmptyKeywordResolver;
+
+impl KeywordResolver for EmptyKeywordResolver {
+    fn resolve_keyword(&self, _kw: &str) -> AppResult<Value> {
+        Ok(Value::Nil)
+    }
+}
+
+fn eval_instructions(
+    instructions: &Vec<Instruction>,
+    env: Rc<RefCell<Env>>,
+    kw_resolver: &KeywordResolver,
+) -> AppResult<Value> {
     let mut pc: usize = 0;
     let mut stack: Vec<Value> = Vec::new();
     while pc < instructions.len() {
@@ -24,6 +46,9 @@ fn eval_instructions(instructions: &Vec<Instruction>, env: Rc<RefCell<Env>>) -> 
             }
             Instruction::LoadName(name) => {
                 stack.push(env.borrow().lookup(name)?);
+            }
+            Instruction::LoadKeyword(kw) => {
+                stack.push(kw_resolver.resolve_keyword(&kw)?);
             }
             Instruction::CallFunction { nargs } => {
                 let mut args = Vec::with_capacity(*nargs as usize);
@@ -45,7 +70,7 @@ fn eval_instructions(instructions: &Vec<Instruction>, env: Rc<RefCell<Env>>) -> 
                         for (param, arg) in params.iter().zip(args) {
                             child_env.borrow_mut().define(param, arg);
                         }
-                        stack.push(eval_instructions(&body, child_env)?);
+                        stack.push(eval_instructions(&body, child_env, kw_resolver)?);
                     }
                     _ => {
                         return Err(AppError::new(format!(
@@ -80,9 +105,9 @@ fn eval_instructions(instructions: &Vec<Instruction>, env: Rc<RefCell<Env>>) -> 
     Ok(stack.pop().unwrap())
 }
 
-pub fn eval(program: &Program, env: Env) -> AppResult<Value> {
+pub fn eval(program: &Program, env: Env, kw_resolver: &KeywordResolver) -> AppResult<Value> {
     let env_rc = Rc::new(RefCell::new(env));
-    eval_instructions(&program.instructions, env_rc)
+    eval_instructions(&program.instructions, env_rc, kw_resolver)
 }
 
 #[cfg(test)]
@@ -94,7 +119,7 @@ mod tests {
     fn test_full_eval() {
         let env = Env::with_builtins();
         let program = compile(&Expr::from_string("(+ 1 2)").unwrap()).unwrap();
-        let res = eval(&program, env).unwrap();
+        let res = eval(&program, env, KeywordResolver::empty()).unwrap();
         assert_eq!(res, Value::Number(3.0));
     }
 }

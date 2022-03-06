@@ -45,7 +45,7 @@ impl JsSheet {
             let expr = parser::parse(input)?;
             let program = interpreter::compile(&expr)?;
             let env = interpreter::Env::with_builtins();
-            let res = interpreter::eval(&program, env)?;
+            let res = interpreter::eval(&program, env, &interpreter::KeywordResolver::empty())?;
             Ok(format!("{:?}", res))
         }()
         .map_err(|err| JsValue::from_str(format!("{}", err).as_str()))

@@ -14,12 +14,19 @@ pub enum Instruction {
     StoreName(String),
     /// Read a value from the environment
     LoadName(String),
+    LoadKeyword(String),
     /// Call a function (built-in or user-defined)
-    CallFunction { nargs: i32 },
+    CallFunction {
+        nargs: i32,
+    },
     /// Jumps if the value on top of the stack is true
-    RelativeJumpIfTrue { offset: i32 },
+    RelativeJumpIfTrue {
+        offset: i32,
+    },
     /// Jumps
-    RelativeJump { offset: i32 },
+    RelativeJump {
+        offset: i32,
+    },
     /// Creates a function object from a code object on the stack and pushes it on the stack
     MakeFunction,
 }

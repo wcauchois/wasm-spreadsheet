@@ -15,8 +15,11 @@ fn compile_to_instruction_vec(expr: &Expr) -> AppResult<Vec<Instruction>> {
 
 fn compile_to_instructions(expr: &Expr, instructions: &mut Vec<Instruction>) -> AppResult<()> {
     match expr {
-        Expr::Number(_) | Expr::String(_) | Expr::Keyword(_) => {
+        Expr::Number(_) | Expr::String(_) => {
             instructions.push(Instruction::LoadConst(Box::new(Value::from_expr(&expr))));
+        }
+        Expr::Keyword(kw) => {
+            instructions.push(Instruction::LoadKeyword(kw.clone()));
         }
         Expr::Symbol(sym) => {
             instructions.push(Instruction::LoadName(sym.clone()));
