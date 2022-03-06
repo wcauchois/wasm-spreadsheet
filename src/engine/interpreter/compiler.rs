@@ -62,6 +62,11 @@ fn compile_to_instructions(expr: &Expr, instructions: &mut Vec<Instruction>) -> 
                 });
                 instructions.extend(true_instructions.into_iter());
             }
+            [Expr::Symbol(head_sym), function_expr, arg_expr] if head_sym == "apply" => {
+                compile_to_instructions(function_expr, instructions)?;
+                compile_to_instructions(arg_expr, instructions)?;
+                instructions.push(Instruction::ApplyFunction);
+            }
             [function_expr, args @ ..] => {
                 // Function application
                 compile_to_instructions(function_expr, instructions)?;

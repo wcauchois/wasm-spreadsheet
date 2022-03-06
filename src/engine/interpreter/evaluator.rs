@@ -12,12 +12,6 @@ pub trait KeywordResolver {
     fn resolve_keyword(&self, kw: &str) -> AppResult<Value>;
 }
 
-impl KeywordResolver {
-    pub fn empty() -> EmptyKeywordResolver {
-        EmptyKeywordResolver
-    }
-}
-
 pub struct EmptyKeywordResolver;
 
 impl KeywordResolver for EmptyKeywordResolver {
@@ -26,10 +20,10 @@ impl KeywordResolver for EmptyKeywordResolver {
     }
 }
 
-fn eval_instructions(
+fn eval_instructions<R: KeywordResolver>(
     instructions: &Vec<Instruction>,
     env: Rc<RefCell<Env>>,
-    kw_resolver: &KeywordResolver,
+    kw_resolver: &R,
 ) -> AppResult<Value> {
     let mut pc: usize = 0;
     let mut stack: Vec<Value> = Vec::new();
@@ -50,12 +44,29 @@ fn eval_instructions(
             Instruction::LoadKeyword(kw) => {
                 stack.push(kw_resolver.resolve_keyword(&kw)?);
             }
-            Instruction::CallFunction { nargs } => {
-                let mut args = Vec::with_capacity(*nargs as usize);
-                for _ in 0..*nargs {
-                    args.push(stack.pop().unwrap());
-                }
-                args.reverse();
+            Instruction::CallFunction { .. } | Instruction::ApplyFunction => {
+                let args = match instruction {
+                    Instruction::CallFunction { nargs } => {
+                        let mut args = Vec::with_capacity(*nargs as usize);
+                        for _ in 0..*nargs {
+                            args.push(stack.pop().unwrap());
+                        }
+                        args.reverse();
+                        args
+                    }
+                    Instruction::ApplyFunction => {
+                        let arg_list = stack.pop().unwrap();
+                        match arg_list {
+                            Value::List(args) => args,
+                            _ => {
+                                return Err(AppError::new(
+                                    "The second argument to `apply` must be a list",
+                                ))
+                            }
+                        }
+                    }
+                    _ => unreachable!(),
+                };
                 let func = stack.pop().unwrap();
                 match func {
                     Value::BuiltinFunction(builtin_func) => {
@@ -99,13 +110,18 @@ fn eval_instructions(
                     panic!("Unexpected stack for MakeFunction");
                 }
             }
-            _ => panic!("Unhandled instruction: {:?}", instruction),
+            Instruction::RelativeJump { offset } => {
+                todo!()
+            }
+            Instruction::RelativeJumpIfTrue { offset } => {
+                todo!()
+            }
         }
     }
     Ok(stack.pop().unwrap())
 }
 
-pub fn eval(program: &Program, env: Env, kw_resolver: &KeywordResolver) -> AppResult<Value> {
+pub fn eval<R: KeywordResolver>(program: &Program, env: Env, kw_resolver: &R) -> AppResult<Value> {
     let env_rc = Rc::new(RefCell::new(env));
     eval_instructions(&program.instructions, env_rc, kw_resolver)
 }
@@ -119,7 +135,7 @@ mod tests {
     fn test_full_eval() {
         let env = Env::with_builtins();
         let program = compile(&Expr::from_string("(+ 1 2)").unwrap()).unwrap();
-        let res = eval(&program, env, KeywordResolver::empty()).unwrap();
+        let res = eval(&program, env, &EmptyKeywordResolve).unwrap();
         assert_eq!(res, Value::Number(3.0));
     }
 }

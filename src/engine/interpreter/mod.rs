@@ -6,5 +6,5 @@ mod model;
 
 pub use self::compiler::{compile, Program};
 pub use self::env::Env;
-pub use self::evaluator::{eval, KeywordResolver};
+pub use self::evaluator::{eval, EmptyKeywordResolver, KeywordResolver};
 pub use self::model::Value;

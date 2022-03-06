@@ -19,6 +19,8 @@ pub enum Instruction {
     CallFunction {
         nargs: i32,
     },
+    /// Apply a function. The stack should consist of <function>, <list of arguments>
+    ApplyFunction,
     /// Jumps if the value on top of the stack is true
     RelativeJumpIfTrue {
         offset: i32,

@@ -15,6 +15,7 @@ mod interpreter;
 mod parser;
 mod sheet;
 
+use interpreter::EmptyKeywordResolver;
 use sheet::{Sheet, SheetAddress};
 
 #[wasm_bindgen]
@@ -45,7 +46,7 @@ impl JsSheet {
             let expr = parser::parse(input)?;
             let program = interpreter::compile(&expr)?;
             let env = interpreter::Env::with_builtins();
-            let res = interpreter::eval(&program, env, &interpreter::KeywordResolver::empty())?;
+            let res = interpreter::eval(&program, env, &EmptyKeywordResolver)?;
             Ok(format!("{:?}", res))
         }()
         .map_err(|err| JsValue::from_str(format!("{}", err).as_str()))

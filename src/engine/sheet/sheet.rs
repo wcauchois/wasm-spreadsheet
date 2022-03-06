@@ -7,7 +7,7 @@ use crate::error::{AppError, AppResult};
 use crate::interpreter;
 use crate::parser::{interpret_cell, Expr, ExprVisitor, InterpretCellResult};
 
-use super::sheet_range::SheetRange;
+use super::sheet_range::{SheetRange, SheetRangeShapedAddresses};
 use super::SheetAddress;
 
 pub struct SheetFormula {
@@ -40,10 +40,18 @@ impl SheetCellComputedValue {
     pub fn from_interpreter_value(ivalue: interpreter::Value) -> Self {
         match ivalue {
             interpreter::Value::Number(n) => SheetCellComputedValue::Number(n),
-            interpreter::Value::String(n) => SheetCellComputedValue::Text(n),
+            interpreter::Value::String(s) => SheetCellComputedValue::Text(s),
             _ => SheetCellComputedValue::Invalid {
                 message: format!("Expression is not representable in a cell: {:?}", ivalue),
             },
+        }
+    }
+
+    pub fn to_interpreter_value(&self) -> interpreter::Value {
+        match self {
+            SheetCellComputedValue::Number(n) => interpreter::Value::Number(*n),
+            SheetCellComputedValue::Text(s) => interpreter::Value::String(s.into()),
+            SheetCellComputedValue::Invalid { .. } => interpreter::Value::Nil,
         }
     }
 
@@ -67,14 +75,46 @@ struct SheetCell {
     formula: Option<SheetFormula>,
 }
 
+impl SheetCell {
+    pub fn to_interpreter_value(&self) -> interpreter::Value {
+        self.computed_value.to_interpreter_value()
+    }
+}
+
 pub struct Sheet {
     cells: HashMap<SheetAddress, SheetCell>,
     dep_graph: DepGraph<SheetAddress>,
 }
 
+impl Sheet {
+    fn resolve_address(&self, address: &SheetAddress) -> interpreter::Value {
+        self.cells
+            .get(address)
+            .map(|cell| cell.to_interpreter_value())
+            .unwrap_or(interpreter::Value::Nil)
+    }
+}
+
 impl interpreter::KeywordResolver for Sheet {
     fn resolve_keyword(&self, kw: &str) -> AppResult<interpreter::Value> {
-        Ok(interpreter::Value::Nil)
+        let range = SheetRange::parse(kw)?;
+
+        Ok(match range.addresses_shaped() {
+            SheetRangeShapedAddresses::Single { address } => self.resolve_address(&address),
+            SheetRangeShapedAddresses::Addresses1D(iter) => interpreter::Value::List(
+                iter.map(|address| self.resolve_address(&address))
+                    .collect::<Vec<_>>(),
+            ),
+            SheetRangeShapedAddresses::Addresses2D(iter) => interpreter::Value::List(
+                iter.map(|row| {
+                    interpreter::Value::List(
+                        row.map(|address| self.resolve_address(&address))
+                            .collect::<Vec<_>>(),
+                    )
+                })
+                .collect::<Vec<_>>(),
+            ),
+        })
     }
 }
 
@@ -87,7 +127,7 @@ impl ExprVisitor for ExprReferencesVisitor {
     fn visit_keyword(&mut self, kw: &String) {
         match SheetRange::parse(kw) {
             Err(error) => self.errors.push(error),
-            Ok(range) => self.references.extend(range.addresses()),
+            Ok(range) => self.references.extend(range.addresses_flat()),
         }
     }
 }
