@@ -44,6 +44,9 @@ fn eval_instructions<R: KeywordResolver>(
             Instruction::LoadKeyword(kw) => {
                 stack.push(kw_resolver.resolve_keyword(&kw)?);
             }
+            Instruction::DiscardValue => {
+                stack.pop().unwrap();
+            }
             Instruction::CallFunction { .. } | Instruction::ApplyFunction => {
                 let args = match instruction {
                     Instruction::CallFunction { nargs } => {
@@ -135,7 +138,15 @@ mod tests {
     fn test_full_eval() {
         let env = Env::with_builtins();
         let program = compile(&Expr::from_string("(+ 1 2)").unwrap()).unwrap();
-        let res = eval(&program, env, &EmptyKeywordResolve).unwrap();
+        let res = eval(&program, env, &EmptyKeywordResolver).unwrap();
         assert_eq!(res, Value::Number(3.0));
+    }
+
+    #[test]
+    fn test_begin() {
+        let env = Env::with_builtins();
+        let program = compile(&Expr::from_string("(begin 1 2)").unwrap()).unwrap();
+        let res = eval(&program, env, &EmptyKeywordResolver).unwrap();
+        assert_eq!(res, Value::Number(2.0));
     }
 }

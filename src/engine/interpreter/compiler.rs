@@ -25,10 +25,40 @@ fn compile_to_instructions(expr: &Expr, instructions: &mut Vec<Instruction>) -> 
             instructions.push(Instruction::LoadName(sym.clone()));
         }
         Expr::List(elems) => match elems.as_slice() {
+            [Expr::Symbol(head_sym), name_sym, arg_spec, body] if head_sym == "defn" => {
+                // (defn foo (x y) body) --> (def foo (fn (x y) body))
+                compile_to_instructions(
+                    &Expr::List(vec![
+                        Expr::Symbol("def".into()),
+                        name_sym.clone(),
+                        Expr::List(vec![
+                            Expr::Symbol("fn".into()),
+                            arg_spec.clone(),
+                            body.clone(),
+                        ]),
+                    ]),
+                    instructions,
+                )?;
+            }
+            [Expr::Symbol(head_sym), Expr::Symbol(name), body] if head_sym == "def" => {
+                compile_to_instructions(body, instructions)?;
+                instructions.push(Instruction::StoreName(name.clone()));
+                // The result of a def is just nil.
+                instructions.push(Instruction::LoadConst(Box::new(Value::Nil)));
+            }
+            [Expr::Symbol(head_sym), rest @ ..] if head_sym == "begin" => {
+                for (idx, sub_expr) in rest.iter().enumerate() {
+                    compile_to_instructions(sub_expr, instructions)?;
+                    let is_last = idx == rest.len() - 1;
+                    if !is_last {
+                        instructions.push(Instruction::DiscardValue);
+                    }
+                }
+            }
             [Expr::Symbol(head_sym), value] if head_sym == "quote" => {
                 instructions.push(Instruction::LoadConst(Box::new(Value::from_expr(&value))));
             }
-            [Expr::Symbol(head_sym), Expr::List(params), body] if head_sym == "lambda" => {
+            [Expr::Symbol(head_sym), Expr::List(params), body] if head_sym == "fn" => {
                 instructions.push(Instruction::LoadConst(Box::new(Value::List(
                     params
                         .iter()

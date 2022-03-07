@@ -31,6 +31,8 @@ pub enum Instruction {
     },
     /// Creates a function object from a code object on the stack and pushes it on the stack
     MakeFunction,
+    /// Pop a value from the stack and do nothing with it.
+    DiscardValue,
 }
 
 #[derive(Debug, PartialEq, Clone)]

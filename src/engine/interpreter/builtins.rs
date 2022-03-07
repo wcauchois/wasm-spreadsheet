@@ -105,3 +105,18 @@ mod tests {
         assert_eq!(Plus.name(), "+");
     }
 }
+
+pub const prelude: &str = r#"
+(begin
+    (defn map (fun lst)
+        (if (nil? lst)
+            nil
+            (cons (fun (car lst)) (map fun (cdr lst)))))
+    (defn filter (fun lst)
+        (if (nil? lst)
+            nil
+            (if (fun (car lst))
+                (cons (car lst) (filter fun (cdr lst)))
+                (filter fun (cdr lst)))))
+)
+"#;
