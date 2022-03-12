@@ -27,7 +27,7 @@ export default function SheetCell({
   });
 
   return (
-    <div
+    <td
       className={className}
       onClick={onClick}
       onDoubleClick={() => {
@@ -55,6 +55,6 @@ export default function SheetCell({
       ) : (
         <div>{contents}</div>
       )}
-    </div>
+    </td>
   );
 }

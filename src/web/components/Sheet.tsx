@@ -30,7 +30,7 @@ export default function Sheet({ model }: { model: SheetModel }) {
 
   const cells = Range(0, HEIGHT)
     .map((row) => (
-      <div className="sheet--row" key={`row-${row}`}>
+      <tr className="sheet--row" key={`row-${row}`}>
         {Range(0, WIDTH)
           .map((col) => (
             <SheetCell
@@ -63,7 +63,7 @@ export default function Sheet({ model }: { model: SheetModel }) {
             />
           ))
           .toJS()}
-      </div>
+      </tr>
     ))
     .toJS();
 
@@ -99,20 +99,5 @@ export default function Sheet({ model }: { model: SheetModel }) {
     );
   }
 
-  return (
-    <div
-      className="sheet"
-      // onKeyDown={(e) => {
-      //   if (e.currentTarget.tagName === "input") {
-      //     return;
-      //   }
-      //   if (e.key === "Enter") {
-      //     setEditingCell(focusedCell);
-      //   }
-      // }}
-      // tabIndex={0}
-    >
-      {cells}
-    </div>
-  );
+  return <table className="sheet">{cells}</table>;
 }
