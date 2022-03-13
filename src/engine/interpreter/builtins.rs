@@ -1,6 +1,7 @@
 use std::cell::RefCell;
 use std::collections::HashMap;
 use std::fmt;
+use std::iter::Extend;
 use std::rc::Rc;
 use std::thread_local;
 
@@ -72,8 +73,55 @@ define_builtin_function!(Show, "show", args => {
     Ok(Value::String(format!("{:?}", arg)))
 });
 
+define_builtin_function!(Cons, "cons", args => {
+    match args.as_slice() {
+        [head, tail] => {
+            let mut result = vec![head.clone()];
+            match tail {
+                Value::List(list) => {
+                    result.extend(list.iter().cloned());
+                }
+                Value::Nil => {}
+                _ => {
+                    return Err(AppError::new(
+                        "Bad arguments for `cons`: expected nil or a list for second arg",
+                    ));
+                }
+            }
+            Ok(Value::List(result))
+        }
+        _ => Err(AppError::new(
+            "Bad arguments for `cons`: expected 2 arguments",
+        )),
+    }
+});
+
+define_builtin_function!(Car, "car", args => {
+    let arg = args.first().ok_or(AppError::new(
+        "Bad arguments for `car`: expected 1 argument",
+    ))?;
+    match arg {
+        Value::List(list) => match list.first() {
+            Some(head) => Ok(head.clone()),
+            None => Err(AppError::new("Cannot take the car of an empty list")),
+        },
+        Value::Nil => Err(AppError::new("Cannot take the car of an empty list")),
+        _ => Err(AppError::new(
+            "Bad arguments for `car`: expected a list as the first argument",
+        )),
+    }
+});
+
+// define_builtin_function!(NilQ, "nil?", args => {
+//     let arg = args.first().ok_or(AppError::new("Bad arguments for `nil?`: expected 1 argument"))?;
+//     match arg {
+//         Value::Nil => Value::
+//     }
+// });
+
 lazy_static! {
-    static ref BUILTIN_FUNCTIONS: Vec<&'static dyn BuiltinFunction> = vec![&Plus, &Mult, &Show];
+    static ref BUILTIN_FUNCTIONS: Vec<&'static dyn BuiltinFunction> =
+        vec![&Plus, &Mult, &Show, &Cons, &Car];
     static ref BUILTIN_FUNCTIONS_BY_NAME: HashMap<String, &'static dyn BuiltinFunction> =
         BUILTIN_FUNCTIONS
             .iter()
@@ -86,6 +134,7 @@ thread_local! {
         table: BUILTIN_FUNCTIONS_BY_NAME
             .iter()
             .map(|(name, func)| (name.clone(), Value::BuiltinFunction(func.clone())))
+            .chain(std::iter::once(("nil".to_string(), Value::Nil)))
             .collect(),
         parent: None,
     }));
@@ -108,11 +157,11 @@ mod tests {
 
 pub const prelude: &str = r#"
 (begin
-    (defn map (fun lst)
+    (defun map (fun lst)
         (if (nil? lst)
             nil
             (cons (fun (car lst)) (map fun (cdr lst)))))
-    (defn filter (fun lst)
+    (defun filter (fun lst)
         (if (nil? lst)
             nil
             (if (fun (car lst))

@@ -25,8 +25,8 @@ fn compile_to_instructions(expr: &Expr, instructions: &mut Vec<Instruction>) -> 
             instructions.push(Instruction::LoadName(sym.clone()));
         }
         Expr::List(elems) => match elems.as_slice() {
-            [Expr::Symbol(head_sym), name_sym, arg_spec, body] if head_sym == "defn" => {
-                // (defn foo (x y) body) --> (def foo (fn (x y) body))
+            [Expr::Symbol(head_sym), name_sym, arg_spec, body] if head_sym == "defun" => {
+                // Desugar: (defun foo (x y) body) --> (def foo (fn (x y) body))
                 compile_to_instructions(
                     &Expr::List(vec![
                         Expr::Symbol("def".into()),
@@ -58,7 +58,7 @@ fn compile_to_instructions(expr: &Expr, instructions: &mut Vec<Instruction>) -> 
             [Expr::Symbol(head_sym), value] if head_sym == "quote" => {
                 instructions.push(Instruction::LoadConst(Box::new(Value::from_expr(&value))));
             }
-            [Expr::Symbol(head_sym), Expr::List(params), body] if head_sym == "fn" => {
+            [Expr::Symbol(head_sym), Expr::List(params), body] if head_sym == "lambda" => {
                 instructions.push(Instruction::LoadConst(Box::new(Value::List(
                     params
                         .iter()
