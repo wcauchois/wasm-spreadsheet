@@ -156,7 +156,7 @@ fn get_references_for_expr(expr: &Expr) -> AppResult<Vec<SheetAddress>> {
 }
 
 impl Sheet {
-    pub fn set_cell(&mut self, address: SheetAddress, contents: String) -> AppResult<()> {
+    pub fn set_cell(&mut self, address: &SheetAddress, contents: String) -> AppResult<()> {
         let interpreted_cell = interpret_cell(&contents)?;
         let new_cell = match interpreted_cell {
             InterpretCellResult::Number(n) => SheetCell {
@@ -189,14 +189,18 @@ impl Sheet {
         };
         self.cells.insert(address.clone(), new_cell);
 
-        if let Some(signal) = self.signals.get(&address) {
-            signal.emit();
-        }
+        self.emit_cell_update(&address);
 
         Ok(())
     }
 
-    pub fn get_cell(&self, address: SheetAddress) -> SheetCellComputedValue {
+    fn emit_cell_update(&self, address: &SheetAddress) {
+        if let Some(signal) = self.signals.get(address) {
+            signal.emit();
+        }
+    }
+
+    pub fn get_cell(&self, address: &SheetAddress) -> SheetCellComputedValue {
         self.cells
             .get(&address)
             .map(|cell| cell.computed_value.clone())

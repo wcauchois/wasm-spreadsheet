@@ -9,22 +9,6 @@ const WIDTH = 10;
 const HEIGHT = 10;
 
 export default function Sheet({ model }: { model: SheetModel }) {
-  const [cellNonces, incrCellNonce] = useReducer(
-    (
-      state: Immutable.Seq.Indexed<Immutable.Seq.Indexed<number>>,
-      action: {
-        row: number;
-        col: number;
-      }
-    ) =>
-      state.map((row, rowIndex) =>
-        row.map((nonce, colIndex) =>
-          action.row === rowIndex && action.col === colIndex ? nonce + 1 : nonce
-        )
-      ),
-    Range(0, HEIGHT).map((_row) => Range(0, WIDTH).map((_col) => 1))
-  );
-
   const [focusedCell, setFocusedCell] = useState<[number, number] | null>(null);
   const [editingCell, setEditingCell] = useState<[number, number] | null>(null);
 
@@ -34,12 +18,13 @@ export default function Sheet({ model }: { model: SheetModel }) {
         {Range(0, WIDTH)
           .map((col) => (
             <SheetCell
-              key={`cell-${col}-${cellNonces.getIn([row, col])}`}
-              contents={model.getCell(row, col) ?? ""}
+              key={`cell-${row}-${col}`}
+              model={model}
+              row={row}
+              col={col}
               onFinishedEditing={(newContents) => {
                 model.setCell(row, col, newContents);
                 setEditingCell(null);
-                incrCellNonce({ row, col });
               }}
               onCancelEditing={() => {
                 setEditingCell(null);

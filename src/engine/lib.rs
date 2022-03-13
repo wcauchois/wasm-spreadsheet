@@ -29,13 +29,13 @@ pub struct JsSheet {
 #[wasm_bindgen]
 impl JsSheet {
     pub fn get_cell(&mut self, row: i32, col: i32) -> String {
-        self.sheet.get_cell(SheetAddress { row, col }).to_string()
+        self.sheet.get_cell(&SheetAddress { row, col }).to_string()
     }
 
     pub fn set_cell(&mut self, row: i32, col: i32, contents: &str) -> Result<(), JsValue> {
         let result = self
             .sheet
-            .set_cell(SheetAddress { row, col }, contents.to_string())
+            .set_cell(&SheetAddress { row, col }, contents.to_string())
             .map_err(|err| JsValue::from_str(format!("{}", err).as_str()))?;
         self.flush_update_queue();
         Ok(result)

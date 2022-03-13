@@ -14,4 +14,12 @@ export default class SheetModel {
   setCell(row: number, col: number, contents: string) {
     this.underlying.set_cell(row, col, contents);
   }
+
+  addListener(row: number, col: number, listener: () => void) {
+    this.underlying.add_listener(row, col, listener);
+  }
+
+  removeListener(row: number, col: number, listener: () => void) {
+    this.underlying.remove_listener(row, col, listener);
+  }
 }

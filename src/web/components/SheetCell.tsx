@@ -1,8 +1,11 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import classNames from "classnames";
+import SheetModel from "../lib/SheetModel";
 
 export interface SheetCellProps {
-  contents: string;
+  model: SheetModel;
+  row: number;
+  col: number;
   onClick(): void;
   focused: boolean;
   onStartEditing(): void;
@@ -12,7 +15,9 @@ export interface SheetCellProps {
 }
 
 export default function SheetCell({
-  contents,
+  model,
+  row,
+  col,
   onClick,
   focused,
   onStartEditing,
@@ -20,7 +25,20 @@ export default function SheetCell({
   onFinishedEditing,
   editing,
 }: SheetCellProps) {
+  const [contents, setContents] = useState(() => model.getCell(row, col));
   const [pendingContents, setPendingContents] = useState("");
+
+  useEffect(() => {
+    function listener() {
+      setTimeout(() => {
+        setContents(model.getCell(row, col));
+      }, 0);
+    }
+    model.addListener(row, col, listener);
+    return () => {
+      model.removeListener(row, col, listener);
+    };
+  }, [model, row, col]);
 
   const className = classNames("sheet--cell", {
     "sheet--cell__focused": focused,
