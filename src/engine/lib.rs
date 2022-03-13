@@ -10,6 +10,7 @@ use std::fmt;
 use std::sync::{Arc, Mutex};
 use wasm_bindgen::prelude::*;
 
+mod console_log;
 mod dep_graph;
 mod error;
 mod interpreter;

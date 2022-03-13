@@ -1,7 +1,8 @@
 use signals2::*;
-use std::collections::{hash_map::Entry, HashMap};
+use std::collections::{hash_map::Entry, HashMap, HashSet, VecDeque};
 use std::fmt;
 
+use crate::console_log::*;
 use crate::dep_graph;
 use crate::dep_graph::DepGraph;
 use crate::error::{AppError, AppResult};
@@ -155,6 +156,8 @@ fn get_references_for_expr(expr: &Expr) -> AppResult<Vec<SheetAddress>> {
     }
 }
 
+const MAX_ITERS: usize = 10_000;
+
 impl Sheet {
     pub fn set_cell(&mut self, address: &SheetAddress, contents: String) -> AppResult<()> {
         let interpreted_cell = interpret_cell(&contents)?;
@@ -173,7 +176,9 @@ impl Sheet {
                 let result = interpreter::eval(&program, env, &*self)?;
                 let references = get_references_for_expr(&expr)?;
                 SheetCell {
-                    computed_value: SheetCellComputedValue::from_interpreter_value(result),
+                    computed_value: SheetCellComputedValue::Invalid {
+                        message: "<pending>".to_string(),
+                    },
                     formula: Some(SheetFormula {
                         address: address.clone(),
                         program,
@@ -190,6 +195,44 @@ impl Sheet {
         self.cells.insert(address.clone(), new_cell);
 
         self.emit_cell_update(&address);
+
+        let mut handled_addresses = HashSet::new();
+        let mut computation_queue: VecDeque<SheetAddress> = VecDeque::from([address.clone()]);
+        let mut num_iters = 0;
+        while let Some(address_to_compute) = computation_queue.pop_front() {
+            num_iters += 1;
+            if num_iters > MAX_ITERS {
+                break;
+            }
+
+            if handled_addresses.contains(&address_to_compute) {
+                continue;
+            } else {
+                handled_addresses.insert(address_to_compute.clone());
+            }
+
+            if let Some(cell) = self.cells.get(&address_to_compute) {
+                if let Some(formula) = &cell.formula {
+                    let env = interpreter::Env::with_builtins();
+                    let result = interpreter::eval(&formula.program, env, &*self)?;
+                    {
+                        self.cells
+                            .get_mut(&address_to_compute)
+                            .unwrap()
+                            .computed_value =
+                            SheetCellComputedValue::from_interpreter_value(result);
+                    }
+                    self.emit_cell_update(&address_to_compute);
+                }
+            }
+
+            for dependent in self
+                .dep_graph
+                .get_direct_dependents(address_to_compute.clone())
+            {
+                computation_queue.push_back(dependent);
+            }
+        }
 
         Ok(())
     }
