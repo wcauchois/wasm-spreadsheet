@@ -11,6 +11,8 @@ console_error_panic_hook = "0.1.7"
 nom = "7.1.0"
 imbl = "1.0.1"
 lazy_static = "1.4.0"
+js-sys = "0.3.56"
+signals2 = "0.3.2"
 
 [package.metadata.raze]
 # The path at which to write output files.
@@ -35,7 +37,19 @@ targets = [
 # vendored set of dependencies.
 genmode = "Remote"
 
+# rules_rust defines its own rust_library for wasm-bindgen, so for any
+# of our crates that depend on wasm-bindgen we need to have them depend
+# on that one otherwise Bazel tries to link in wasm-bindgen twice
+# (resulting in duplicate symbol errors etc.)
 [package.metadata.raze.crates.console_error_panic_hook.'*']
+skipped_deps = [
+    "wasm-bindgen-0.2.79"
+]
+additional_deps = [
+    "@rules_rust_wasm_bindgen__wasm_bindgen__0_2_78//:wasm_bindgen",
+]
+
+[package.metadata.raze.crates.js-sys.'*']
 skipped_deps = [
     "wasm-bindgen-0.2.79"
 ]

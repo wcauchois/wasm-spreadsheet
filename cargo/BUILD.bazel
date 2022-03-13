@@ -31,6 +31,15 @@ alias(
 )
 
 alias(
+    name = "js_sys",
+    actual = "@raze__js_sys__0_3_56//:js_sys",
+    tags = [
+        "cargo-raze",
+        "manual",
+    ],
+)
+
+alias(
     name = "lazy_static",
     actual = "@raze__lazy_static__1_4_0//:lazy_static",
     tags = [
@@ -42,6 +51,15 @@ alias(
 alias(
     name = "nom",
     actual = "@raze__nom__7_1_0//:nom",
+    tags = [
+        "cargo-raze",
+        "manual",
+    ],
+)
+
+alias(
+    name = "signals2",
+    actual = "@raze__signals2__0_3_2//:signals2",
     tags = [
         "cargo-raze",
         "manual",

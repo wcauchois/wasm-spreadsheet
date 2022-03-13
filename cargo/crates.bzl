@@ -61,6 +61,15 @@ def raze_fetch_remote_crates():
 
     maybe(
         http_archive,
+        name = "raze__js_sys__0_3_56",
+        url = "https://crates.io/api/v1/crates/js-sys/0.3.56/download",
+        type = "tar.gz",
+        strip_prefix = "js-sys-0.3.56",
+        build_file = Label("//cargo/remote:BUILD.js-sys-0.3.56.bazel"),
+    )
+
+    maybe(
+        http_archive,
         name = "raze__lazy_static__1_4_0",
         url = "https://crates.io/api/v1/crates/lazy_static/1.4.0/download",
         type = "tar.gz",
@@ -142,6 +151,15 @@ def raze_fetch_remote_crates():
         type = "tar.gz",
         strip_prefix = "rand_xoshiro-0.6.0",
         build_file = Label("//cargo/remote:BUILD.rand_xoshiro-0.6.0.bazel"),
+    )
+
+    maybe(
+        http_archive,
+        name = "raze__signals2__0_3_2",
+        url = "https://crates.io/api/v1/crates/signals2/0.3.2/download",
+        type = "tar.gz",
+        strip_prefix = "signals2-0.3.2",
+        build_file = Label("//cargo/remote:BUILD.signals2-0.3.2.bazel"),
     )
 
     maybe(

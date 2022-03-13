@@ -3,4 +3,4 @@ mod sheet;
 mod sheet_range;
 
 pub use core_model::SheetAddress;
-pub use sheet::Sheet;
+pub use sheet::{CellSubscription, Sheet};

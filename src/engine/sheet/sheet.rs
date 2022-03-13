@@ -1,4 +1,5 @@
-use std::collections::HashMap;
+use signals2::*;
+use std::collections::{hash_map::Entry, HashMap};
 use std::fmt;
 
 use crate::dep_graph;
@@ -84,6 +85,14 @@ impl SheetCell {
 pub struct Sheet {
     cells: HashMap<SheetAddress, SheetCell>,
     dep_graph: DepGraph<SheetAddress>,
+    // Not stored in SheetCell itself so that clients can subscribe to cells
+    // which haven't been created yet.
+    signals: HashMap<SheetAddress, Signal<()>>,
+}
+
+pub struct CellSubscription {
+    address: SheetAddress,
+    connection: Connection,
 }
 
 impl Sheet {
@@ -178,7 +187,12 @@ impl Sheet {
             Some(formula) => self.dep_graph.update_node(formula),
             None => self.dep_graph.clear_id(&address),
         };
-        self.cells.insert(address, new_cell);
+        self.cells.insert(address.clone(), new_cell);
+
+        if let Some(signal) = self.signals.get(&address) {
+            signal.emit();
+        }
+
         Ok(())
     }
 
@@ -189,6 +203,30 @@ impl Sheet {
             .unwrap_or(SheetCellComputedValue::empty())
     }
 
+    pub fn subscribe_to_cell<F: Fn() -> () + Send + Sync + 'static>(
+        &mut self,
+        address: SheetAddress,
+        f: F,
+    ) -> CellSubscription {
+        let signal = self
+            .signals
+            .entry(address.clone())
+            .or_insert_with(|| Signal::new());
+        CellSubscription {
+            address: address.clone(),
+            connection: signal.connect(f),
+        }
+    }
+
+    pub fn unsubscribe(&mut self, subscription: &CellSubscription) {
+        subscription.connection.disconnect();
+        if let Some(signal) = self.signals.get(&subscription.address) {
+            if signal.count() == 0 {
+                self.signals.remove(&subscription.address);
+            }
+        }
+    }
+
     pub fn debug_graphviz(&self) -> String {
         self.dep_graph.to_graphviz()
     }
@@ -197,6 +235,7 @@ impl Sheet {
         Self {
             cells: HashMap::new(),
             dep_graph: DepGraph::empty(),
+            signals: HashMap::new(),
         }
     }
 }
