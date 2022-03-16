@@ -3,6 +3,16 @@
   --border-color: #e2e3e3;
 }
 
+body {
+  font-size: 14px;
+  font-family: sans-serif;
+}
+
+input {
+  font-size: 14px;
+  font-family: sans-serif;
+}
+
 .sheet {
   border-collapse: collapse;
 }
@@ -30,4 +40,13 @@
 .sheet--cell__focused {
   border: 2px solid var(--active-border-color);
   padding: calc(var(--padding) - 1px);
+}
+
+.formula-editor {
+  margin: 5px;
+}
+
+.formula-editor .CodeMirror {
+  height: 110px;
+  border: 1px solid var(--border-color);
 }

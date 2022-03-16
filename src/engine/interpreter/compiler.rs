@@ -32,7 +32,7 @@ fn compile_to_instructions(expr: &Expr, instructions: &mut Vec<Instruction>) -> 
                         Expr::Symbol("def".into()),
                         name_sym.clone(),
                         Expr::List(vec![
-                            Expr::Symbol("fn".into()),
+                            Expr::Symbol("lambda".into()),
                             arg_spec.clone(),
                             body.clone(),
                         ]),
@@ -96,6 +96,20 @@ fn compile_to_instructions(expr: &Expr, instructions: &mut Vec<Instruction>) -> 
                 compile_to_instructions(function_expr, instructions)?;
                 compile_to_instructions(arg_expr, instructions)?;
                 instructions.push(Instruction::ApplyFunction);
+            }
+            // Catch-all for malformed forms; must go towards the end of pattern matching
+            // but before function application.
+            [Expr::Symbol(head_sym), ..]
+                if (head_sym == "defun"
+                    || head_sym == "if"
+                    || head_sym == "def"
+                    || head_sym == "lambda"
+                    || head_sym == "apply") =>
+            {
+                return Err(AppError::new(format!(
+                    "Invalid syntax for built-in form `{}`",
+                    head_sym
+                )))
             }
             [function_expr, args @ ..] => {
                 // Function application

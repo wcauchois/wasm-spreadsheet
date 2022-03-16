@@ -1,9 +1,10 @@
 import SheetModel from "../lib/SheetModel";
-import React, { useReducer, useState } from "react";
-import Immutable, { Range } from "immutable";
+import React, { useState } from "react";
+import { Range } from "immutable";
 import SheetCell from "./SheetCell";
 import { useHotkeys } from "react-hotkeys-hook";
 import { clamp } from "../lib/util";
+import FormulaEditor from "./FormulaEditor";
 
 const WIDTH = 10;
 const HEIGHT = 10;
@@ -84,5 +85,12 @@ export default function Sheet({ model }: { model: SheetModel }) {
     );
   }
 
-  return <table className="sheet">{cells}</table>;
+  return (
+    <div>
+      <FormulaEditor />
+      <table className="sheet">
+        <tbody>{cells}</tbody>
+      </table>
+    </div>
+  );
 }

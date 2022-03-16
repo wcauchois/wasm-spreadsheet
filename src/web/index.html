@@ -3,6 +3,10 @@
   <head>
     <title>Untitled</title>
     <link rel="stylesheet" type="text/css" href="bundle.css" />
+    <script type="text/javascript">
+      // Workaround for react-codemirror2: https://github.com/scniro/react-codemirror2/issues/66#issuecomment-898400845
+      window.global = window;
+    </script>
   </head>
 
   <body>
