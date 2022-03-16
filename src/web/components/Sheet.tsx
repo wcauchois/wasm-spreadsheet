@@ -10,8 +10,23 @@ const WIDTH = 10;
 const HEIGHT = 10;
 
 export default function Sheet({ model }: { model: SheetModel }) {
-  const [focusedCell, setFocusedCell] = useState<[number, number] | null>(null);
+  const [focusedCell, rawSetFocusedCell] = useState<[number, number] | null>(
+    null
+  );
   const [editingCell, setEditingCell] = useState<[number, number] | null>(null);
+  const [pendingContents, setPendingContents] = useState("");
+
+  function setFocusedCell([newCol, newRow]: [number, number]) {
+    if (focusedCell) {
+      const [oldCol, oldRow] = focusedCell;
+      if (newCol !== oldCol || newRow !== oldRow) {
+        model.setCell(oldRow, oldCol, pendingContents);
+        setPendingContents(model.getCell(newRow, newCol).source);
+        setEditingCell(null);
+      }
+    }
+    rawSetFocusedCell([newCol, newRow]);
+  }
 
   const cells = Range(0, HEIGHT)
     .map((row) => (
@@ -23,12 +38,15 @@ export default function Sheet({ model }: { model: SheetModel }) {
               model={model}
               row={row}
               col={col}
-              onFinishedEditing={(newContents) => {
-                model.setCell(row, col, newContents);
+              onFinishedEditing={() => {
+                model.setCell(row, col, pendingContents);
                 setEditingCell(null);
               }}
+              pendingContents={pendingContents}
+              setPendingContents={setPendingContents}
               onCancelEditing={() => {
                 setEditingCell(null);
+                setPendingContents(model.getCell(row, col).source);
               }}
               onClick={() => {
                 setFocusedCell([col, row]);
@@ -87,7 +105,15 @@ export default function Sheet({ model }: { model: SheetModel }) {
 
   return (
     <div>
-      <FormulaEditor />
+      <FormulaEditor
+        contents={pendingContents}
+        setContents={(newContents) => {
+          if (focusedCell) {
+            setPendingContents(newContents);
+            setEditingCell(focusedCell);
+          }
+        }}
+      />
       <table className="sheet">
         <tbody>{cells}</tbody>
       </table>

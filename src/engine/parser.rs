@@ -5,7 +5,7 @@ use nom::{
     bytes::complete::{escaped, tag},
     character::complete::{anychar, char, multispace0, multispace1, none_of, one_of},
     character::is_alphanumeric,
-    combinator::{cut, map, recognize, verify},
+    combinator::{cut, map, recognize, value, verify},
     error::{context, VerboseError},
     multi::{many1_count, separated_list0},
     number::complete::float,
@@ -21,6 +21,7 @@ pub enum Expr {
     String(String),
     Symbol(String),
     Keyword(String),
+    Boolean(bool),
     List(Vec<Expr>),
 }
 
@@ -35,6 +36,7 @@ pub trait ExprVisitor {
     fn visit_string(&mut self, _s: &String) {}
     fn visit_symbol(&mut self, _sym: &String) {}
     fn visit_keyword(&mut self, _kw: &String) {}
+    fn visit_boolean(&mut self, _b: bool) {}
 }
 
 pub trait ExprRewriter {
@@ -48,6 +50,7 @@ impl Expr {
             Expr::String(s) => visitor.visit_string(&s),
             Expr::Symbol(sym) => visitor.visit_symbol(&sym),
             Expr::Keyword(kw) => visitor.visit_keyword(&kw),
+            Expr::Boolean(b) => visitor.visit_boolean(*b),
             Expr::List(exprs) => {
                 for expr in exprs {
                     expr.walk(visitor);
@@ -99,6 +102,7 @@ fn parse_ident<'a>(input: &'a str) -> ParseResult<'a, &'a str> {
             '&' => true,
             '.' => true,
             '=' => true,
+            '?' => true,
             _ => false,
         }
     }
@@ -112,6 +116,13 @@ fn parse_symbol<'a>(input: &'a str) -> ExprParseResult<'a> {
 
 fn parse_keyword<'a>(input: &'a str) -> ExprParseResult<'a> {
     map(preceded(tag(":"), parse_ident), |i| Expr::Keyword(i.into()))(input)
+}
+
+fn parse_boolean<'a>(input: &'a str) -> ExprParseResult<'a> {
+    alt((
+        value(Expr::Boolean(true), tag("#t")),
+        value(Expr::Boolean(false), tag("#f")),
+    ))(input)
 }
 
 fn parse_expr<'a>(input: &'a str) -> ExprParseResult {
@@ -138,6 +149,7 @@ fn parse_expr<'a>(input: &'a str) -> ExprParseResult {
             // symbols can contain numbers or pretty much anything they want.
             parse_symbol,
             parse_keyword,
+            parse_boolean,
             parse_list,
         )),
     )(input)

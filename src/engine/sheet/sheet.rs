@@ -16,7 +16,6 @@ pub struct SheetFormula {
     address: SheetAddress,
     program: interpreter::Program,
     references: Vec<SheetAddress>,
-    source: String,
 }
 
 impl dep_graph::Node<SheetAddress> for SheetFormula {
@@ -43,6 +42,10 @@ impl SheetCellComputedValue {
         match ivalue {
             interpreter::Value::Number(n) => SheetCellComputedValue::Number(n),
             interpreter::Value::String(s) => SheetCellComputedValue::Text(s),
+            interpreter::Value::Boolean(b) => {
+                SheetCellComputedValue::Text((if b { "TRUE" } else { "FALSE" }).into())
+            }
+            interpreter::Value::Nil => SheetCellComputedValue::Text("<nil>".into()),
             _ => SheetCellComputedValue::Invalid {
                 message: format!("Expression is not representable in a cell: {:?}", ivalue),
             },
@@ -75,6 +78,12 @@ impl fmt::Display for SheetCellComputedValue {
 struct SheetCell {
     computed_value: SheetCellComputedValue,
     formula: Option<SheetFormula>,
+    source: String,
+}
+
+pub struct SheetCellInfo {
+    pub value: SheetCellComputedValue,
+    pub source: String,
 }
 
 impl SheetCell {
@@ -161,33 +170,32 @@ const MAX_ITERS: usize = 10_000;
 impl Sheet {
     pub fn set_cell(&mut self, address: &SheetAddress, contents: String) -> AppResult<()> {
         let interpreted_cell = interpret_cell(&contents)?;
-        let new_cell = match interpreted_cell {
-            InterpretCellResult::Number(n) => SheetCell {
-                computed_value: SheetCellComputedValue::Number(n),
-                formula: None,
-            },
-            InterpretCellResult::Text(s) => SheetCell {
-                computed_value: SheetCellComputedValue::Text(s),
-                formula: None,
-            },
+        let (computed_value, formula) = match interpreted_cell {
+            InterpretCellResult::Number(n) => (SheetCellComputedValue::Number(n), None),
+            InterpretCellResult::Text(s) => (SheetCellComputedValue::Text(s), None),
             InterpretCellResult::Expr(expr) => {
-                let program = interpreter::compile(&expr)?;
+                let program = interpreter::compile_with_prelude(&expr)?;
                 let env = interpreter::Env::with_builtins();
                 let result = interpreter::eval(&program, env, &*self)?;
                 let references = get_references_for_expr(&expr)?;
-                SheetCell {
-                    computed_value: SheetCellComputedValue::Invalid {
-                        message: "<pending>".to_string(),
-                    },
-                    formula: Some(SheetFormula {
-                        address: address.clone(),
-                        program,
-                        references,
-                        source: contents.clone(),
-                    }),
-                }
+                let computed_value = SheetCellComputedValue::Invalid {
+                    message: "<pending>".to_string(),
+                };
+                let formula = SheetFormula {
+                    address: address.clone(),
+                    program,
+                    references,
+                };
+                (computed_value, Some(formula))
             }
         };
+
+        let new_cell = SheetCell {
+            computed_value,
+            formula,
+            source: contents.clone(),
+        };
+
         self.dep_graph = match &new_cell.formula {
             Some(formula) => self.dep_graph.update_node(formula),
             None => self.dep_graph.clear_id(&address),
@@ -243,11 +251,17 @@ impl Sheet {
         }
     }
 
-    pub fn get_cell(&self, address: &SheetAddress) -> SheetCellComputedValue {
-        self.cells
-            .get(&address)
-            .map(|cell| cell.computed_value.clone())
-            .unwrap_or(SheetCellComputedValue::empty())
+    pub fn get_cell(&self, address: &SheetAddress) -> SheetCellInfo {
+        match self.cells.get(&address) {
+            Some(cell) => SheetCellInfo {
+                value: cell.computed_value.clone(),
+                source: cell.source.clone(),
+            },
+            None => SheetCellInfo {
+                value: SheetCellComputedValue::empty(),
+                source: "".to_string(),
+            },
+        }
     }
 
     pub fn subscribe_to_cell<F: Fn() -> () + Send + Sync + 'static>(

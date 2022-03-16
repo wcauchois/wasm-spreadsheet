@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import classNames from "classnames";
 import SheetModel from "../lib/SheetModel";
+import { JsSheetCellInfo } from "engine_lib_wasm_bindgen";
 
 export interface SheetCellProps {
   model: SheetModel;
@@ -11,7 +12,9 @@ export interface SheetCellProps {
   onStartEditing(): void;
   editing: boolean;
   onCancelEditing(): void;
-  onFinishedEditing(newContents: string): void;
+  onFinishedEditing(): void;
+  pendingContents: string;
+  setPendingContents(newContents: string): void;
 }
 
 export default function SheetCell({
@@ -24,15 +27,14 @@ export default function SheetCell({
   onCancelEditing,
   onFinishedEditing,
   editing,
+  pendingContents,
+  setPendingContents,
 }: SheetCellProps) {
-  const [contents, setContents] = useState(() => model.getCell(row, col));
-  const [pendingContents, setPendingContents] = useState("");
+  const [contents, setContents] = useState(() => model.getCell(row, col).value);
 
   useEffect(() => {
-    function listener() {
-      setTimeout(() => {
-        setContents(model.getCell(row, col));
-      }, 0);
+    function listener(arg: JsSheetCellInfo) {
+      setContents(arg.value);
     }
     model.addListener(row, col, listener);
     return () => {
@@ -49,13 +51,13 @@ export default function SheetCell({
       className={className}
       onClick={onClick}
       onDoubleClick={() => {
-        onStartEditing();
-        setPendingContents(contents);
+        if (!editing) {
+          onStartEditing();
+        }
       }}
     >
       {editing ? (
         <input
-          autoFocus
           type="text"
           value={pendingContents}
           onKeyDown={(e) => {
@@ -63,7 +65,7 @@ export default function SheetCell({
               onCancelEditing();
             }
             if (e.key === "Enter") {
-              onFinishedEditing(pendingContents);
+              onFinishedEditing();
             }
           }}
           onChange={(e) => {

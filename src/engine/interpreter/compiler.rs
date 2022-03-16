@@ -1,6 +1,7 @@
 use crate::error::{AppError, AppResult};
 use crate::parser::Expr;
 
+use super::builtins::PARSED_PRELUDE;
 use super::model::{Instruction, Value};
 
 pub struct Program {
@@ -15,7 +16,7 @@ fn compile_to_instruction_vec(expr: &Expr) -> AppResult<Vec<Instruction>> {
 
 fn compile_to_instructions(expr: &Expr, instructions: &mut Vec<Instruction>) -> AppResult<()> {
     match expr {
-        Expr::Number(_) | Expr::String(_) => {
+        Expr::Number(_) | Expr::String(_) | Expr::Boolean(_) => {
             instructions.push(Instruction::LoadConst(Box::new(Value::from_expr(&expr))));
         }
         Expr::Keyword(kw) => {
@@ -58,7 +59,9 @@ fn compile_to_instructions(expr: &Expr, instructions: &mut Vec<Instruction>) -> 
             [Expr::Symbol(head_sym), value] if head_sym == "quote" => {
                 instructions.push(Instruction::LoadConst(Box::new(Value::from_expr(&value))));
             }
-            [Expr::Symbol(head_sym), Expr::List(params), body] if head_sym == "lambda" => {
+            [Expr::Symbol(head_sym), Expr::List(params), body]
+                if head_sym == "lambda" || head_sym == "lam" =>
+            {
                 instructions.push(Instruction::LoadConst(Box::new(Value::List(
                     params
                         .iter()
@@ -84,7 +87,7 @@ fn compile_to_instructions(expr: &Expr, instructions: &mut Vec<Instruction>) -> 
 
                 compile_to_instructions(cond, instructions)?;
                 instructions.push(Instruction::RelativeJumpIfTrue {
-                    offset: false_instruction_count,
+                    offset: false_instruction_count + 1, // +1 is to skip the relative jump at the end of FALSE
                 });
                 instructions.extend(false_instructions.into_iter());
                 instructions.push(Instruction::RelativeJump {
@@ -130,6 +133,23 @@ pub fn compile(expr: &Expr) -> AppResult<Program> {
     Ok(Program {
         instructions: compile_to_instruction_vec(&expr)?,
     })
+}
+
+pub fn compile_with_prelude(expr: &Expr) -> AppResult<Program> {
+    let statements = PARSED_PRELUDE.with(|parsed_prelude| {
+        let mut statements = Vec::new();
+        statements.push(Expr::Symbol("begin".to_string()));
+        match parsed_prelude {
+            Expr::List(list) => {
+                statements.extend(list.iter().cloned());
+            }
+            _ => panic!("Prelude should be a list of statements"),
+        }
+        statements.push(expr.clone());
+        statements
+    });
+    let new_expr = Expr::List(statements);
+    compile(&new_expr)
 }
 
 #[cfg(test)]

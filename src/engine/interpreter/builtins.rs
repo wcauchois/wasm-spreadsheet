@@ -10,6 +10,8 @@ use crate::error::{AppError, AppResult};
 use super::env::Env;
 use super::model::Value;
 
+use crate::parser;
+
 pub trait BuiltinFunction: Sync {
     fn name(&self) -> String;
     fn call(&self, args: Vec<Value>) -> AppResult<Value>;
@@ -73,6 +75,11 @@ define_builtin_function!(Show, "show", args => {
     Ok(Value::String(format!("{:?}", arg)))
 });
 
+define_builtin_function!(Type, "type", args => {
+    let arg = args.first().ok_or(AppError::new("Bad arguments for `type`"))?;
+    Ok(Value::String(arg.type_string().to_string()))
+});
+
 define_builtin_function!(Cons, "cons", args => {
     match args.as_slice() {
         [head, tail] => {
@@ -112,16 +119,37 @@ define_builtin_function!(Car, "car", args => {
     }
 });
 
-// define_builtin_function!(NilQ, "nil?", args => {
-//     let arg = args.first().ok_or(AppError::new("Bad arguments for `nil?`: expected 1 argument"))?;
-//     match arg {
-//         Value::Nil => Value::
-//     }
-// });
+define_builtin_function!(Cdr, "cdr", args => {
+    let arg = args.first().ok_or(AppError::new(
+        "Bad arguments for `cdr`: expected 1 argument",
+    ))?;
+    match arg {
+        Value::List(list) => {
+            if list.len() > 0 {
+                Ok(Value::List(list[1..].to_vec()))
+            } else {
+                Err(AppError::new("Cannot take the cdr of an empty list"))
+            }
+        }
+        Value::Nil => Err(AppError::new("Cannot take the cdr of an empty list")),
+        _ => Err(AppError::new(
+            "Bad arguments for `cdr`: expected a list as the first argument",
+        )),
+    }
+});
+
+define_builtin_function!(NilQ, "nil?", args => {
+    let arg = args.first().ok_or(AppError::new("Bad arguments for `nil?`: expected 1 argument"))?;
+    Ok(Value::Boolean(match arg {
+        Value::Nil => true,
+        Value::List(list) if list.len() == 0 => true,
+        _ => false,
+    }))
+});
 
 lazy_static! {
     static ref BUILTIN_FUNCTIONS: Vec<&'static dyn BuiltinFunction> =
-        vec![&Plus, &Mult, &Show, &Cons, &Car];
+        vec![&Plus, &Mult, &Show, &Cons, &Car, &Type, &NilQ, &Cdr];
     static ref BUILTIN_FUNCTIONS_BY_NAME: HashMap<String, &'static dyn BuiltinFunction> =
         BUILTIN_FUNCTIONS
             .iter()
@@ -156,7 +184,7 @@ mod tests {
 }
 
 pub const prelude: &str = r#"
-(begin
+(
     (defun map (fun lst)
         (if (nil? lst)
             nil
@@ -169,3 +197,7 @@ pub const prelude: &str = r#"
                 (filter fun (cdr lst)))))
 )
 "#;
+
+thread_local! {
+    pub static PARSED_PRELUDE: parser::Expr = parser::parse(prelude).unwrap();
+}

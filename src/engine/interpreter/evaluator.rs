@@ -114,10 +114,17 @@ fn eval_instructions<R: KeywordResolver>(
                 }
             }
             Instruction::RelativeJump { offset } => {
-                todo!()
+                pc += *offset as usize;
             }
             Instruction::RelativeJumpIfTrue { offset } => {
-                todo!()
+                let cond = stack.pop().unwrap();
+                let should_jump = match cond {
+                    Value::Boolean(true) => true,
+                    _ => false,
+                };
+                if should_jump {
+                    pc += *offset as usize;
+                }
             }
         }
     }

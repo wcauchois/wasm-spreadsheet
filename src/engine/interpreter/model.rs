@@ -1,4 +1,5 @@
 use std::cell::RefCell;
+use std::fmt;
 use std::rc::Rc;
 
 use crate::parser::Expr;
@@ -35,10 +36,11 @@ pub enum Instruction {
     DiscardValue,
 }
 
-#[derive(Debug, PartialEq, Clone)]
+#[derive(PartialEq, Clone)]
 pub enum Value {
     Number(f32),
     String(String),
+    Boolean(bool),
     Symbol(String),
     // XXX: Keywords should be resolved to a cell value
     Keyword(String),
@@ -54,14 +56,53 @@ pub enum Value {
     Nil,
 }
 
+impl fmt::Debug for Value {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Value::Number(n) => write!(f, "Number({})", n),
+            Value::String(s) => write!(f, "String({:?})", s),
+            Value::Boolean(b) => {
+                if *b {
+                    write!(f, "#t")
+                } else {
+                    write!(f, "#f")
+                }
+            }
+            Value::Symbol(sym) => write!(f, "Symbol({})", sym),
+            Value::Keyword(kw) => write!(f, "Keyword({})", kw),
+            Value::List(elems) => write!(f, "List({:?}", elems),
+            Value::CompiledCode(code) => write!(f, "<compiled code>"),
+            Value::UserFunction { params, .. } => write!(f, "<func: {:?}>", params),
+            Value::BuiltinFunction(func) => func.fmt(f),
+            Value::Nil => write!(f, "Nil"),
+        }
+    }
+}
+
 impl Value {
     pub fn from_expr(expr: &Expr) -> Self {
         match expr {
             Expr::Number(n) => Value::Number(n.clone()),
             Expr::String(s) => Value::String(s.clone()),
+            Expr::Boolean(b) => Value::Boolean(b.clone()),
             Expr::Symbol(sym) => Value::Symbol(sym.clone()),
             Expr::Keyword(kw) => Value::Symbol(kw.clone()),
             Expr::List(exprs) => Value::List(exprs.iter().map(|e| Value::from_expr(e)).collect()),
+        }
+    }
+
+    pub fn type_string(&self) -> &str {
+        match self {
+            Value::Number(_) => "number",
+            Value::String(_) => "string",
+            Value::Boolean(_) => "bool",
+            Value::Symbol(_) => "symbol",
+            Value::Keyword(_) => "keyword",
+            Value::List(_) => "list",
+            Value::CompiledCode(code) => "code",
+            Value::UserFunction { .. } => "function",
+            Value::BuiltinFunction(func) => "builtin",
+            Value::Nil => "nil",
         }
     }
 }

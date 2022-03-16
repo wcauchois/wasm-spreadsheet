@@ -18,7 +18,7 @@ mod parser;
 mod sheet;
 
 use interpreter::EmptyKeywordResolver;
-use sheet::{CellSubscription, Sheet, SheetAddress};
+use sheet::{CellSubscription, Sheet, SheetAddress, SheetCellInfo};
 
 #[wasm_bindgen]
 pub struct JsSheet {
@@ -28,9 +28,31 @@ pub struct JsSheet {
 }
 
 #[wasm_bindgen]
+pub struct JsSheetCellInfo {
+    underlying: SheetCellInfo,
+}
+
+#[wasm_bindgen]
+impl JsSheetCellInfo {
+    #[wasm_bindgen(getter)]
+    pub fn value(&self) -> String {
+        self.underlying.value.to_string()
+    }
+
+    #[wasm_bindgen(getter)]
+    pub fn source(&self) -> String {
+        self.underlying.source.clone()
+    }
+
+    fn from(underlying: SheetCellInfo) -> Self {
+        Self { underlying }
+    }
+}
+
+#[wasm_bindgen]
 impl JsSheet {
-    pub fn get_cell(&mut self, row: i32, col: i32) -> String {
-        self.sheet.get_cell(&SheetAddress { row, col }).to_string()
+    pub fn get_cell(&mut self, row: i32, col: i32) -> JsSheetCellInfo {
+        JsSheetCellInfo::from(self.sheet.get_cell(&SheetAddress { row, col }))
     }
 
     pub fn set_cell(&mut self, row: i32, col: i32, contents: &str) -> Result<(), JsValue> {
@@ -86,8 +108,10 @@ impl JsSheet {
             match self.listener_map.get(&address) {
                 Some((listeners, _)) => {
                     for func in listeners {
+                        let arg: JsValue =
+                            JsSheetCellInfo::from(self.sheet.get_cell(&address)).into();
                         // Ignores errors. Should we try to propagate them?
-                        let _ = func.call0(&js_this);
+                        let _ = func.call1(&js_this, &arg);
                     }
                 }
                 None => (),

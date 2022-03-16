@@ -1,4 +1,4 @@
-import { JsSheet } from "engine_lib_wasm_bindgen";
+import { JsSheet, JsSheetCellInfo } from "engine_lib_wasm_bindgen";
 
 export default class SheetModel {
   private readonly underlying: JsSheet;
@@ -15,11 +15,19 @@ export default class SheetModel {
     this.underlying.set_cell(row, col, contents);
   }
 
-  addListener(row: number, col: number, listener: () => void) {
+  addListener(
+    row: number,
+    col: number,
+    listener: (arg: JsSheetCellInfo) => void
+  ) {
     this.underlying.add_listener(row, col, listener);
   }
 
-  removeListener(row: number, col: number, listener: () => void) {
+  removeListener(
+    row: number,
+    col: number,
+    listener: (arg: JsSheetCellInfo) => void
+  ) {
     this.underlying.remove_listener(row, col, listener);
   }
 }

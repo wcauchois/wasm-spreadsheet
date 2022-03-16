@@ -3,15 +3,25 @@ import { Controlled as CodeMirror } from "react-codemirror2";
 import "codemirror/mode/commonlisp/commonlisp";
 import "codemirror/lib/codemirror.css";
 
-export default function FormulaEditor() {
+export interface FormulaEditorProps {
+  contents: string;
+  setContents(newContents: string): void;
+}
+
+export default function FormulaEditor({
+  contents,
+  setContents,
+}: FormulaEditorProps) {
   return (
     <div className="formula-editor">
       <CodeMirror
-        value="(defun (x) (car foo))"
+        value={contents}
         options={{
           mode: "commonlisp",
         }}
-        onBeforeChange={(editor, data, value) => {}}
+        onBeforeChange={(editor, data, value) => {
+          setContents(value);
+        }}
       />
     </div>
   );
