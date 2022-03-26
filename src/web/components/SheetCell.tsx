@@ -60,6 +60,9 @@ export default function SheetCell({
         <input
           type="text"
           value={pendingContents}
+          ref={(inputElem) => {
+            inputElem?.focus();
+          }}
           onKeyDown={(e) => {
             if (e.key === "Escape") {
               onCancelEditing();

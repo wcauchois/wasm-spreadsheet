@@ -10,3 +10,6 @@ bazel-wasm-spreadsheet
 
 # Cargo/rust
 target
+
+# For now
+.vscode
